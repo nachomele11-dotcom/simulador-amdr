@@ -967,7 +967,7 @@ const db = firebase.firestore();
 // un admin marca una versión nueva como la única válida.
 // IMPORTANTE: subir este número cada vez que se entregue un archivo nuevo.
 // ============================================================
-const APP_VERSION = 12;
+const APP_VERSION = 13;
 let versionBloqueada = false;
 
 const verificarVersion = async () => {
@@ -1439,7 +1439,15 @@ const aplicarLinea = () => {
 // ============================================================
 
 // Tasa efectiva del período (proporcional a la TNA)
-const calcularTEP = (tna, mesesPeriodo) => (tna / 100) * (mesesPeriodo / 12);
+// Tasa efectiva del período: se compone la tasa mensual proporcional (TNA/12) a lo
+// largo de los meses del período — no se multiplica en forma simple. Para periodicidad
+// mensual (mesesPeriodo=1) da exactamente lo mismo que antes (TNA/12), pero para
+// bimestral/trimestral/semestral/anual esto es lo que corresponde financieramente
+// (validado contra la planilla de Contaduría: TNA 75% semestral -> TEP 43,871%).
+const calcularTEP = (tna, mesesPeriodo) => {
+  const temMensual = tna / 100 / 12;
+  return Math.pow(1 + temMensual, mesesPeriodo) - 1;
+};
 
 // TEA a partir de la TEP (capitalización compuesta)
 const calcularTEA = (tep, mesesPeriodo) => (Math.pow(1 + tep, 12 / mesesPeriodo) - 1) * 100;
