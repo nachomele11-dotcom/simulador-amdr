@@ -407,6 +407,15 @@
                   <input id="cliente" type="text" class="input-field" placeholder="Nombre o razón social">
                 </div>
 
+                <div>
+                  <label class="field-label">CUIT <span class="font-normal" style="color:var(--ink-faint);">(opcional — consulta situación en BCRA)</span></label>
+                  <div class="flex gap-2">
+                    <input id="cuit" type="text" class="input-field" placeholder="20123456789" maxlength="11" inputmode="numeric">
+                    <button type="button" id="btnConsultarBCRA" class="btn btn-secondary btn-sm" style="white-space:nowrap;">Consultar</button>
+                  </div>
+                  <div id="resultadoBCRA" class="hidden mt-2 rounded-lg p-3 text-xs"></div>
+                </div>
+
                 <div class="grid grid-cols-2 gap-3">
                   <div>
                     <label class="field-label">Moneda</label>
@@ -959,7 +968,7 @@ const db = firebase.firestore();
 // un admin marca una versión nueva como la única válida.
 // IMPORTANTE: subir este número cada vez que se entregue un archivo nuevo.
 // ============================================================
-const APP_VERSION = 10;
+const APP_VERSION = 11;
 let versionBloqueada = false;
 
 const verificarVersion = async () => {
@@ -1358,7 +1367,7 @@ const aplicarModoSimulador = (tipo) => {
   document.getElementById('labelFecha').textContent = esCheque ? 'Fecha de operación' : 'Fecha de otorgamiento';
   document.getElementById('grupoGracia').classList.toggle('hidden', esCheque);
   document.getElementById('simChequesContainer').classList.toggle('hidden', !esCheque);
-  if (esCheque && chequesActuales.length === 0) { chequesActuales = [{ valorNominal: '', fechaCobro: '' }]; renderCheques(); }
+  if (esCheque && chequesActuales.length === 0) { chequesActuales = [{ valorNominal: '', fechaCobro: '', cuit: '' }]; renderCheques(); }
   if (!esCheque) document.getElementById('avisoCheque90').classList.add('hidden');
   document.getElementById('lblCuota').textContent = esCheque ? 'Monto neto a recibir' : 'Cuota';
   document.getElementById('lblTEM').textContent = esCheque ? 'Días' : 'TEM';
@@ -1514,15 +1523,30 @@ const renderCheques = () => {
           <input type="date" class="input-field cheque-fecha" data-i="${i}" value="${c.fechaCobro || ''}">
           <p class="input-help">Se cobrará el ${fechaAcred}</p>
         </div>
+        <div>
+          <label class="field-label" style="font-size:0.68rem;">CUIT del firmante <span class="font-normal" style="color:var(--ink-faint);">(opcional)</span></label>
+          <div class="flex gap-2">
+            <input type="text" class="input-field cheque-cuit" data-i="${i}" placeholder="20123456789" maxlength="11" inputmode="numeric" value="${c.cuit || ''}">
+            <button type="button" class="btn btn-secondary btn-sm cheque-consultar-bcra" data-i="${i}" style="white-space:nowrap;">Consultar</button>
+          </div>
+          <div class="cheque-bcra-resultado hidden mt-1 rounded-lg p-2 text-xs" data-i="${i}"></div>
+        </div>
       </div>
     </div>`;
   }).join('');
   cont.querySelectorAll('.cheque-valor').forEach(el => el.addEventListener('input', e => { chequesActuales[+e.target.dataset.i].valorNominal = parseFloat(e.target.value) || 0; }));
   cont.querySelectorAll('.cheque-fecha').forEach(el => el.addEventListener('change', e => { chequesActuales[+e.target.dataset.i].fechaCobro = e.target.value; renderCheques(); }));
+  cont.querySelectorAll('.cheque-cuit').forEach(el => el.addEventListener('input', e => { chequesActuales[+e.target.dataset.i].cuit = e.target.value; }));
+  cont.querySelectorAll('.cheque-consultar-bcra').forEach(btn => btn.addEventListener('click', (e) => {
+    const i = +e.target.dataset.i;
+    const cuitVal = chequesActuales[i].cuit;
+    const resultado = cont.querySelector(`.cheque-bcra-resultado[data-i="${i}"]`);
+    consultarBCRA(cuitVal, resultado);
+  }));
 };
 
 const agregarCheque = () => {
-  chequesActuales.push({ valorNominal: '', fechaCobro: '' });
+  chequesActuales.push({ valorNominal: '', fechaCobro: '', cuit: '' });
   renderCheques();
 };
 
@@ -1531,6 +1555,50 @@ const quitarCheque = (i) => {
   renderCheques();
 };
 window.quitarCheque = quitarCheque;
+
+// ============================================================
+// CONSULTA BCRA (Central de Deudores): semáforo de riesgo por CUIT
+// ============================================================
+const renderResultadoBCRA = (contenedor, data) => {
+  contenedor.classList.remove('hidden');
+  if (!data.ok) {
+    contenedor.style.background = 'var(--paper-deep)';
+    contenedor.style.color = 'var(--ink-soft)';
+    contenedor.textContent = data.error || 'No se pudo consultar.';
+    return;
+  }
+  if (data.sinDatos) {
+    contenedor.style.background = 'var(--green-100)';
+    contenedor.style.color = 'var(--green-700)';
+    contenedor.textContent = '✓ Sin registros en el BCRA (sin deudas ni cheques rechazados).';
+    return;
+  }
+  if (!data.alerta) {
+    contenedor.style.background = 'var(--green-100)';
+    contenedor.style.color = 'var(--green-700)';
+    contenedor.textContent = `✓ Situación 1 — sin cheques rechazados${data.denominacion ? ' · ' + data.denominacion : ''}`;
+  } else {
+    contenedor.style.background = 'var(--red-100)';
+    contenedor.style.color = 'var(--red-700)';
+    contenedor.textContent = `⚠ ${data.motivos.join(' · ')}${data.denominacion ? ' · ' + data.denominacion : ''}`;
+  }
+};
+
+const consultarBCRA = async (cuit, contenedor) => {
+  const limpio = (cuit || '').replace(/\D/g, '');
+  if (limpio.length !== 11) return showToast('El CUIT debe tener 11 dígitos', 'error');
+  contenedor.classList.remove('hidden');
+  contenedor.style.background = 'var(--paper-deep)';
+  contenedor.style.color = 'var(--ink-soft)';
+  contenedor.textContent = 'Consultando BCRA...';
+  try {
+    const resp = await fetch(`/api/bcra?cuit=${limpio}`);
+    const data = await resp.json();
+    renderResultadoBCRA(contenedor, data);
+  } catch (err) {
+    renderResultadoBCRA(contenedor, { ok: false, error: 'No se pudo conectar con el servicio del BCRA.' });
+  }
+};
 
 // Generar cronograma (con ajuste de redondeo en la última cuota)
 const generarCronograma = (capital, tep, n, fechaInicio, mesesPeriodo, gracia) => {
@@ -1721,7 +1789,7 @@ const calcularPrestamo = () => {
 
   simulacionActual = {
     id: Date.now(), fecha: new Date().toISOString(), tipo: 'prestamo',
-    cliente, moneda, monto, capital, tna, plazoMeses, mesesPeriodo, cantidadCuotas,
+    cliente, cuit: document.getElementById('cuit').value.trim(), moneda, monto, capital, tna, plazoMeses, mesesPeriodo, cantidadCuotas,
     fechaOtorg, gracia, cuota, tep, tea, tem, cft, totalIntereses, totalAbonado, diasPrimeraCuota,
     linea: lineaSeleccionadaActual ? lineaSeleccionadaActual.nombre : 'Sin línea',
     lineaData: lineaSeleccionadaActual,
@@ -1774,7 +1842,7 @@ const calcularCheque = () => {
     const gastoAdmin = valorNominal * (lineaSeleccionadaActual.gastoAdminPct || 0) / 100;
 
     detalle.push({
-      numero: i + 1, valorNominal, fechaCobro: c.fechaCobro,
+      numero: i + 1, valorNominal, fechaCobro: c.fechaCobro, cuit: c.cuit || '',
       fechaAcreditacion: fechaAcredObj.toISOString().slice(0, 10),
       dias, tna, descuento, selladoProv, gastoAdmin
     });
@@ -2005,8 +2073,9 @@ const actualizarDashboard = () => {
 };
 
 const nuevaSimulacion = () => {
-  ['cliente','monto','tna','plazo','gracia'].forEach(id => document.getElementById(id).value = '');
+  ['cliente','monto','tna','plazo','gracia','cuit'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('gracia').value = 0;
+  document.getElementById('resultadoBCRA').classList.add('hidden');
   document.getElementById('lineaSeleccionada').value = '';
   document.getElementById('fecha').valueAsDate = new Date();
   ['manualSellado','manualGastoOtorg','manualSelladoSolic','manualSegVidaPorc','manualIVA'].forEach(id => document.getElementById(id).value = 0);
@@ -2162,7 +2231,7 @@ const verSimulacion = (id) => {
     document.getElementById('lineaSeleccionada').value = lineaExiste ? lineaExiste.id : '';
     if (!lineaExiste) document.getElementById('tipoManual').value = 'cheque';
 
-    chequesActuales = sim.cheques.map(c => ({ valorNominal: c.valorNominal, fechaCobro: c.fechaCobro }));
+    chequesActuales = sim.cheques.map(c => ({ valorNominal: c.valorNominal, fechaCobro: c.fechaCobro, cuit: c.cuit || '' }));
     aplicarLinea();
     renderCheques();
 
@@ -2187,6 +2256,8 @@ const verSimulacion = (id) => {
   cronogramaActual = sim.cronograma;
 
   document.getElementById('cliente').value = sim.cliente;
+  document.getElementById('cuit').value = sim.cuit || '';
+  document.getElementById('resultadoBCRA').classList.add('hidden');
   document.getElementById('moneda').value = sim.moneda;
   document.getElementById('monto').value = sim.monto;
   document.getElementById('tna').value = sim.tna;
@@ -2427,6 +2498,9 @@ document.getElementById('tipoManual').addEventListener('change', (e) => {
   });
 });
 document.getElementById('btnAgregarCheque').addEventListener('click', agregarCheque);
+document.getElementById('btnConsultarBCRA').addEventListener('click', () => {
+  consultarBCRA(document.getElementById('cuit').value, document.getElementById('resultadoBCRA'));
+});
 document.getElementById('btnCalcular').addEventListener('click', calcular);
 document.getElementById('btnGuardar').addEventListener('click', guardarSimulacion);
 document.getElementById('btnNueva').addEventListener('click', nuevaSimulacion);
