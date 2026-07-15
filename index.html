@@ -990,7 +990,7 @@ const db = firebase.firestore();
 // un admin marca una versión nueva como la única válida.
 // IMPORTANTE: subir este número cada vez que se entregue un archivo nuevo.
 // ============================================================
-const APP_VERSION = 20;
+const APP_VERSION = 21;
 let versionBloqueada = false;
 
 const verificarVersion = async () => {
@@ -2637,8 +2637,14 @@ const generarPDFCronograma = async () => {
       </div>`;
   }
 
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed; inset:0; background:#fff; z-index:99998; display:flex; align-items:center; justify-content:center; font-family:\'IBM Plex Sans\',sans-serif; color:#8C7C96; font-size:13px;';
+  overlay.textContent = 'Generando PDF...';
   const wrapper = document.createElement('div');
-  wrapper.style.cssText = 'position:fixed; left:-9999px; top:0; width:max-content; background:#ffffff; padding:36px; font-family:\'IBM Plex Sans\',sans-serif; color:#241A2C;';
+  // Importante: en flujo normal (no position:fixed lejos de la pantalla) — html2canvas
+  // recorta contenido que queda muy lejos del viewport visible. Se tapa con el overlay
+  // de arriba para que el usuario no vea el contenido "crudo" mientras se genera.
+  wrapper.style.cssText = 'position:absolute; top:0; left:0; z-index:99997; width:max-content; background:#ffffff; padding:36px; font-family:\'IBM Plex Sans\',sans-serif; color:#241A2C;';
   wrapper.innerHTML = `
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
       <img src="${logoSrc}" style="height:36px; width:auto;">
@@ -2649,17 +2655,19 @@ const generarPDFCronograma = async () => {
     </h1>
     <p style="font-size:13px; color:#55306A; margin:0 0 6px;">${s.cliente} · ${s.linea}</p>
     ${resumenHtml}
-    <table style="width:100%; border-collapse:collapse;">
+    <table style="border-collapse:collapse;">
       <thead><tr>${cabecerasHtml}</tr></thead>
       <tbody>${filasHtml}</tbody>
     </table>
   `;
+  document.body.appendChild(overlay);
   document.body.appendChild(wrapper);
   await esperarImagenes(wrapper);
   const anchoReal = wrapper.scrollWidth;
   const altoReal = wrapper.scrollHeight;
-  const canvas = await html2canvas(wrapper, { scale: 2, logging: false, backgroundColor: '#ffffff', width: anchoReal, windowWidth: anchoReal });
+  const canvas = await html2canvas(wrapper, { scale: 2, logging: false, backgroundColor: '#ffffff' });
   document.body.removeChild(wrapper);
+  document.body.removeChild(overlay);
 
   const { jsPDF } = window.jspdf;
   const mmPorPx = 25.4 / 96; // conversión de píxeles CSS a milímetros (96 px = 1 pulgada)
