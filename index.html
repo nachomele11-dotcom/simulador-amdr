@@ -705,6 +705,10 @@
                         <p><span class="font-semibold">Línea:</span> <span id="propChLinea"></span></p>
                         <p><span class="font-semibold">Valor nominal total:</span> <span id="propChValorTotal"></span></p>
                         <p><span class="font-semibold">Fecha de operación:</span> <span id="propChFechaOp"></span></p>
+                        <p id="propChPromediosRow" class="hidden col-span-2 grid grid-cols-2 gap-3">
+                          <span><span class="font-semibold">Plazo prom. ponderado:</span> <span id="propChPlazoProm"></span></span>
+                          <span><span class="font-semibold">Tasa prom. ponderada:</span> <span id="propChTasaProm"></span></span>
+                        </p>
                         <p><span class="font-semibold">Sellado provincial:</span> <span id="propChSellado"></span></p>
                         <p><span class="font-semibold">Gasto administrativo:</span> <span id="propChGastoAdmin"></span></p>
                         <p><span class="font-semibold">Sellado solicitud:</span> <span id="propChSelladoSolic"></span></p>
@@ -929,6 +933,17 @@ const fmt = (num, dec = 2, moneda = 'ARS') => {
   const numFormateado = new Intl.NumberFormat('es-AR', { minimumFractionDigits: dec, maximumFractionDigits: dec }).format(num);
   return `${simbolo} ${numFormateado}`;
 };
+// Redondeo a pesos enteros para las propuestas comerciales: 50 centavos o menos
+// para abajo, 51 centavos o más para arriba (no es el redondeo estándar, que
+// llevaría 50 hacia arriba — trabaja en centavos enteros para evitar líos de
+// coma flotante).
+const redondearPesos = (num) => {
+  if (isNaN(num) || num === null) return 0;
+  const centavos = Math.round(num * 100);
+  const pesos = Math.floor(centavos / 100);
+  const resto = centavos - pesos * 100;
+  return resto <= 50 ? pesos : pesos + 1;
+};
 const fmtNum = (num, dec = 2) => {
   if (isNaN(num) || num === null) return '0,00';
   return new Intl.NumberFormat('es-AR', { minimumFractionDigits: dec, maximumFractionDigits: dec }).format(num);
@@ -975,7 +990,7 @@ const db = firebase.firestore();
 // un admin marca una versión nueva como la única válida.
 // IMPORTANTE: subir este número cada vez que se entregue un archivo nuevo.
 // ============================================================
-const APP_VERSION = 16;
+const APP_VERSION = 17;
 let versionBloqueada = false;
 
 const verificarVersion = async () => {
@@ -2015,13 +2030,14 @@ const calcularCheque = () => {
 
   const diasMax = Math.max(...detalle.map(c => c.dias));
   const diasPromedioPonderado = detalle.reduce((s, c) => s + c.dias * c.valorNominal, 0) / sumaValorNominal;
+  const tasaPromedioPonderada = detalle.reduce((s, c) => s + c.tna * c.valorNominal, 0) / sumaValorNominal;
   const cft = (costoTotal / montoNeto) * (365 / diasPromedioPonderado) * 100;
 
   simulacionActual = {
     id: Date.now(), fecha: new Date().toISOString(), tipo: 'cheque',
     cliente, moneda, fechaOperacion, cheques: detalle,
     sumaValorNominal, sumaDescuento, sumaSelladoProv, sumaGastoAdmin, selladoSolic,
-    costoTotal, montoNeto, cft, diasMax,
+    costoTotal, montoNeto, cft, diasMax, diasPromedioPonderado, tasaPromedioPonderada,
     linea: lineaSeleccionadaActual.nombre, lineaData: lineaSeleccionadaActual
   };
 
@@ -2054,6 +2070,10 @@ const actualizarTablaCheque = () => {
     ['Fecha de operación', new Date(s.fechaOperacion + 'T00:00:00').toLocaleDateString('es-AR')],
     ['Cantidad de cheques', s.cheques.length],
     ['Valor nominal total', fmt(s.sumaValorNominal, 2, s.moneda)],
+    ...(s.cheques.length > 1 ? [
+      ['Plazo promedio ponderado', `${s.diasPromedioPonderado.toFixed(1)} días`],
+      ['Tasa promedio ponderada (TNA)', fmtNum(s.tasaPromedioPonderada) + '%']
+    ] : []),
     ['Descuento total (interés)', fmt(s.sumaDescuento, 2, s.moneda)],
     ['Sellado provincial total', fmt(s.sumaSelladoProv, 2, s.moneda)],
     ['Gasto administrativo total', fmt(s.sumaGastoAdmin, 2, s.moneda)],
@@ -2116,10 +2136,15 @@ const actualizarPropuesta = () => {
     document.getElementById('propChLinea').textContent = s.linea;
     document.getElementById('propChValorTotal').textContent = fmt(s.sumaValorNominal, 2, s.moneda);
     document.getElementById('propChFechaOp').textContent = new Date(s.fechaOperacion + 'T00:00:00').toLocaleDateString('es-AR');
+    document.getElementById('propChPromediosRow').classList.toggle('hidden', s.cheques.length <= 1);
+    if (s.cheques.length > 1) {
+      document.getElementById('propChPlazoProm').textContent = `${s.diasPromedioPonderado.toFixed(1)} días`;
+      document.getElementById('propChTasaProm').textContent = fmtNum(s.tasaPromedioPonderada) + '%';
+    }
     document.getElementById('propChSellado').textContent = fmt(s.sumaSelladoProv, 2, s.moneda);
     document.getElementById('propChGastoAdmin').textContent = fmt(s.sumaGastoAdmin, 2, s.moneda);
     document.getElementById('propChSelladoSolic').textContent = fmt(s.selladoSolic, 2, s.moneda);
-    document.getElementById('propChNeto').textContent = fmt(s.montoNeto, 2, s.moneda);
+    document.getElementById('propChNeto').textContent = fmt(redondearPesos(s.montoNeto), 0, s.moneda);
     return;
   }
 
@@ -2148,7 +2173,7 @@ const actualizarPropuesta = () => {
   document.getElementById('propLblFecha').textContent = 'Fecha otorg.:';
   document.getElementById('propFecha').textContent = new Date(s.fechaOtorg + 'T00:00:00').toLocaleDateString('es-AR');
   document.getElementById('propLblCuota').textContent = 'Cuota:';
-  document.getElementById('propCuota').textContent = fmt(s.cuota, 2, s.moneda);
+  document.getElementById('propCuota').textContent = fmt(redondearPesos(s.cuota), 0, s.moneda);
   document.getElementById('propLblTEM').textContent = 'TEM:';
   document.getElementById('propTEM').textContent = fmtNum(s.tem) + '%';
   document.getElementById('propLblTEA').textContent = 'TEA:';
@@ -2167,7 +2192,7 @@ const actualizarPropuestaWhatsapp = () => {
 
   if (s.tipo === 'cheque') {
     document.getElementById('waTitulo').textContent = s.cheques.length === 1 ? 'Tu adelanto de cheque' : `Tu adelanto de ${s.cheques.length} cheques`;
-    document.getElementById('waMonto').textContent = fmt(s.montoNeto, 0, s.moneda);
+    document.getElementById('waMonto').textContent = fmt(redondearPesos(s.montoNeto), 0, s.moneda);
     document.getElementById('waSubtitulo').textContent = 'te quedan en mano ahora';
     if (s.cheques.length === 1) {
       waGracia.textContent = `Se cobra el ${new Date(s.cheques[0].fechaAcreditacion + 'T00:00:00').toLocaleDateString('es-AR')} · valor nominal ${fmt(s.sumaValorNominal, 2, s.moneda)}`;
@@ -2183,7 +2208,7 @@ const actualizarPropuestaWhatsapp = () => {
   document.getElementById('waTitulo').textContent = 'Tu préstamo';
   document.getElementById('waMonto').textContent = fmt(s.monto, 0, s.moneda);
   document.getElementById('waSubtitulo').textContent = 'te quedan en mano';
-  document.getElementById('waCuotas').textContent = `${s.esCampo ? (s.cantidadCuotas + ' cuota' + (s.cantidadCuotas === 1 ? '' : 's') + ' (Campo)') : fraseCuotas(s.cantidadCuotas, s.mesesPeriodo)} de ${fmt(s.cuota, 2, s.moneda)}`;
+  document.getElementById('waCuotas').textContent = `${s.esCampo ? (s.cantidadCuotas + ' cuota' + (s.cantidadCuotas === 1 ? '' : 's') + ' (Campo)') : fraseCuotas(s.cantidadCuotas, s.mesesPeriodo)} de ${fmt(redondearPesos(s.cuota), 0, s.moneda)}`;
   if (s.gracia > 0 && s.diasPrimeraCuota) {
     waGracia.textContent = `Pagás tu primera cuota en ${s.diasPrimeraCuota} días`;
     waGracia.classList.remove('hidden');
