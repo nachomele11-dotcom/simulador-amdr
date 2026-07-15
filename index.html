@@ -990,7 +990,7 @@ const db = firebase.firestore();
 // un admin marca una versión nueva como la única válida.
 // IMPORTANTE: subir este número cada vez que se entregue un archivo nuevo.
 // ============================================================
-const APP_VERSION = 21;
+const APP_VERSION = 22;
 let versionBloqueada = false;
 
 const verificarVersion = async () => {
@@ -2680,19 +2680,23 @@ const generarPDFCronograma = async () => {
   let pdf;
   if (alturaTotal <= pageHeightMax) {
     // Entra en una sola hoja: la hoja se arma del tamaño justo del contenido
-    // (ancho y alto), sin recortar ni dejar espacio de más.
-    pdf = new jsPDF({ unit: 'mm', format: [pageWidth, imgHeight] });
+    // (ancho y alto), sin recortar ni dejar espacio de más. Hay que indicarle
+    // la orientación a mano — si no, jsPDF asume "vertical" por defecto y
+    // invierte ancho/alto solo, arruinando una tabla apaisada.
+    const orientacion = pageWidth >= imgHeight ? 'l' : 'p';
+    pdf = new jsPDF({ unit: 'mm', format: [pageWidth, imgHeight], orientation: orientacion });
     pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
   } else {
     // Cronograma largo: se reparte en varias hojas del mismo ancho (el que
     // haga falta), con alto estándar por página.
-    pdf = new jsPDF({ unit: 'mm', format: [pageWidth, pageHeightMax] });
+    const orientacion = pageWidth >= pageHeightMax ? 'l' : 'p';
+    pdf = new jsPDF({ unit: 'mm', format: [pageWidth, pageHeightMax], orientation: orientacion });
     let heightLeft = imgHeight, position = 0;
     pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
     heightLeft -= pageHeightMax;
     while (heightLeft > 0) {
       position = heightLeft - imgHeight;
-      pdf.addPage([pageWidth, pageHeightMax]);
+      pdf.addPage([pageWidth, pageHeightMax], orientacion);
       pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
       heightLeft -= pageHeightMax;
     }
