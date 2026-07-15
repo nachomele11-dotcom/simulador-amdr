@@ -990,7 +990,7 @@ const db = firebase.firestore();
 // un admin marca una versión nueva como la única válida.
 // IMPORTANTE: subir este número cada vez que se entregue un archivo nuevo.
 // ============================================================
-const APP_VERSION = 17;
+const APP_VERSION = 20;
 let versionBloqueada = false;
 
 const verificarVersion = async () => {
@@ -2570,27 +2570,126 @@ const generarPDF = async () => {
 const generarPDFCronograma = async () => {
   if (!simulacionActual) return showToast('Primero calculá una simulación', 'error');
   showToast('Generando PDF...', 'info');
-  const esCheque = simulacionActual.tipo === 'cheque';
-  const elemento = document.getElementById(esCheque ? 'cronogramaCheque' : 'cronogramaPrestamo');
-  await esperarImagenes(elemento);
-  const canvas = await html2canvas(elemento, { scale: 2, logging: false, backgroundColor: '#ffffff' });
+  const s = simulacionActual;
+  const esCheque = s.tipo === 'cheque';
+  const logoSrc = document.getElementById('logoPropuesta').src;
+  const hoy = new Date().toLocaleDateString('es-AR');
+  const th = 'padding:8px 10px; text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:0.03em; color:#fff; background:#33193E;';
+  const tdBase = 'padding:7px 10px; font-size:12px; border-bottom:1px solid #EDE7EF;';
+
+  let filasHtml, cabecerasHtml, resumenHtml;
+
+  if (esCheque) {
+    cabecerasHtml = ['N°', 'Valor nominal', 'Vence', 'Se cobra', 'Días', 'TNA', 'Descuento']
+      .map(h => `<th style="${th}">${h}</th>`).join('');
+    filasHtml = s.cheques.map(c => `
+      <tr>
+        <td style="${tdBase}">${c.numero}</td>
+        <td style="${tdBase}">${fmt(c.valorNominal, 2, s.moneda)}</td>
+        <td style="${tdBase}">${new Date(c.fechaCobro + 'T00:00:00').toLocaleDateString('es-AR')}</td>
+        <td style="${tdBase}">${new Date(c.fechaAcreditacion + 'T00:00:00').toLocaleDateString('es-AR')}</td>
+        <td style="${tdBase}">${c.dias}</td>
+        <td style="${tdBase}">${fmtNum(c.tna)}%</td>
+        <td style="${tdBase}">${fmt(c.descuento, 2, s.moneda)}</td>
+      </tr>`).join('');
+    resumenHtml = `
+      <div style="display:flex; gap:14px; margin:16px 0 20px;">
+        <div style="flex:1; background:#F7F3F9; border-radius:10px; padding:12px 16px;">
+          <p style="font-size:10px; text-transform:uppercase; color:#8C7C96; margin:0 0 4px;">Valor nominal total</p>
+          <p style="font-size:17px; font-weight:600; margin:0; color:#33193E;">${fmt(s.sumaValorNominal, 2, s.moneda)}</p>
+        </div>
+        <div style="flex:1; background:#F7F3F9; border-radius:10px; padding:12px 16px;">
+          <p style="font-size:10px; text-transform:uppercase; color:#8C7C96; margin:0 0 4px;">Costo total</p>
+          <p style="font-size:17px; font-weight:600; margin:0; color:#33193E;">${fmt(s.costoTotal, 2, s.moneda)}</p>
+        </div>
+        <div style="flex:1; background:#F7F3F9; border-radius:10px; padding:12px 16px;">
+          <p style="font-size:10px; text-transform:uppercase; color:#8C7C96; margin:0 0 4px;">Monto neto a recibir</p>
+          <p style="font-size:17px; font-weight:600; margin:0; color:#33193E;">${fmt(s.montoNeto, 2, s.moneda)}</p>
+        </div>
+      </div>`;
+  } else {
+    cabecerasHtml = ['N° cuota', 'Fecha', 'Saldo inicial', 'Capital', 'Interés', 'Cuota', 'Saldo final']
+      .map(h => `<th style="${th}">${h}</th>`).join('');
+    filasHtml = s.cronograma.map(c => `
+      <tr style="${c.tipo === 'gracia' ? 'color:#A99BAF;' : ''}">
+        <td style="${tdBase}">${c.numCuota}</td>
+        <td style="${tdBase}">${c.fecha}</td>
+        <td style="${tdBase}">${fmt(c.saldoInicial, 2, s.moneda)}</td>
+        <td style="${tdBase}">${fmt(c.capital, 2, s.moneda)}</td>
+        <td style="${tdBase}">${fmt(c.interes, 2, s.moneda)}</td>
+        <td style="${tdBase} font-weight:600;">${fmt(c.cuota, 2, s.moneda)}</td>
+        <td style="${tdBase}">${fmt(c.saldoFinal, 2, s.moneda)}</td>
+      </tr>`).join('');
+    resumenHtml = `
+      <div style="display:flex; gap:14px; margin:16px 0 20px;">
+        <div style="flex:1; background:#F7F3F9; border-radius:10px; padding:12px 16px;">
+          <p style="font-size:10px; text-transform:uppercase; color:#8C7C96; margin:0 0 4px;">Capital</p>
+          <p style="font-size:17px; font-weight:600; margin:0; color:#33193E;">${fmt(s.capital, 2, s.moneda)}</p>
+        </div>
+        <div style="flex:1; background:#F7F3F9; border-radius:10px; padding:12px 16px;">
+          <p style="font-size:10px; text-transform:uppercase; color:#8C7C96; margin:0 0 4px;">Intereses</p>
+          <p style="font-size:17px; font-weight:600; margin:0; color:#33193E;">${fmt(s.totalIntereses, 2, s.moneda)}</p>
+        </div>
+        <div style="flex:1; background:#F7F3F9; border-radius:10px; padding:12px 16px;">
+          <p style="font-size:10px; text-transform:uppercase; color:#8C7C96; margin:0 0 4px;">Total a abonar</p>
+          <p style="font-size:17px; font-weight:600; margin:0; color:#33193E;">${fmt(s.totalAbonado, 2, s.moneda)}</p>
+        </div>
+      </div>`;
+  }
+
+  const wrapper = document.createElement('div');
+  wrapper.style.cssText = 'position:fixed; left:-9999px; top:0; width:max-content; background:#ffffff; padding:36px; font-family:\'IBM Plex Sans\',sans-serif; color:#241A2C;';
+  wrapper.innerHTML = `
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+      <img src="${logoSrc}" style="height:36px; width:auto;">
+      <p style="font-size:11px; color:#8C7C96; margin:0;">Generado el ${hoy}</p>
+    </div>
+    <h1 style="font-family:'Fraunces',serif; font-size:20px; font-weight:600; color:#33193E; margin:14px 0 2px;">
+      ${esCheque ? 'Detalle de cheques' : 'Cronograma de pagos'}
+    </h1>
+    <p style="font-size:13px; color:#55306A; margin:0 0 6px;">${s.cliente} · ${s.linea}</p>
+    ${resumenHtml}
+    <table style="width:100%; border-collapse:collapse;">
+      <thead><tr>${cabecerasHtml}</tr></thead>
+      <tbody>${filasHtml}</tbody>
+    </table>
+  `;
+  document.body.appendChild(wrapper);
+  await esperarImagenes(wrapper);
+  const anchoReal = wrapper.scrollWidth;
+  const altoReal = wrapper.scrollHeight;
+  const canvas = await html2canvas(wrapper, { scale: 2, logging: false, backgroundColor: '#ffffff', width: anchoReal, windowWidth: anchoReal });
+  document.body.removeChild(wrapper);
+
   const { jsPDF } = window.jspdf;
-  const pdf = new jsPDF('p', 'mm', 'a4');
-  const pageWidth = 210, pageHeight = 297;
+  const mmPorPx = 25.4 / 96; // conversión de píxeles CSS a milímetros (96 px = 1 pulgada)
+  const pageWidth = anchoReal * mmPorPx;   // ancho de página = ancho real del contenido (naturalmente "apaisado" si la tabla es ancha)
+  const alturaTotal = altoReal * mmPorPx;
+  const pageHeightMax = 297; // tope de alto por página antes de pasar a la siguiente
   const imgWidth = pageWidth;
   const imgHeight = canvas.height * imgWidth / canvas.width;
   const imgData = canvas.toDataURL('image/png');
-  let heightLeft = imgHeight;
-  let position = 0;
-  pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-  heightLeft -= pageHeight;
-  while (heightLeft > 0) {
-    position = heightLeft - imgHeight;
-    pdf.addPage();
+  let pdf;
+  if (alturaTotal <= pageHeightMax) {
+    // Entra en una sola hoja: la hoja se arma del tamaño justo del contenido
+    // (ancho y alto), sin recortar ni dejar espacio de más.
+    pdf = new jsPDF({ unit: 'mm', format: [pageWidth, imgHeight] });
+    pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+  } else {
+    // Cronograma largo: se reparte en varias hojas del mismo ancho (el que
+    // haga falta), con alto estándar por página.
+    pdf = new jsPDF({ unit: 'mm', format: [pageWidth, pageHeightMax] });
+    let heightLeft = imgHeight, position = 0;
     pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-    heightLeft -= pageHeight;
+    heightLeft -= pageHeightMax;
+    while (heightLeft > 0) {
+      position = heightLeft - imgHeight;
+      pdf.addPage([pageWidth, pageHeightMax]);
+      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+      heightLeft -= pageHeightMax;
+    }
   }
-  pdf.save(`AMDR_Cronograma_${simulacionActual.cliente.replace(/\s+/g, '_')}.pdf`);
+  pdf.save(`AMDR_Cronograma_${s.cliente.replace(/\s+/g, '_')}.pdf`);
   showToast('PDF generado correctamente', 'success');
 };
 
