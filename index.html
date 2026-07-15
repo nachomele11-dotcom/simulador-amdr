@@ -975,7 +975,7 @@ const db = firebase.firestore();
 // un admin marca una versión nueva como la única válida.
 // IMPORTANTE: subir este número cada vez que se entregue un archivo nuevo.
 // ============================================================
-const APP_VERSION = 15;
+const APP_VERSION = 16;
 let versionBloqueada = false;
 
 const verificarVersion = async () => {
@@ -1617,10 +1617,20 @@ const consultarBCRA = async (cuit, contenedor) => {
 
 // Generar cronograma (con ajuste de redondeo en la última cuota)
 // Ajusta una fecha al próximo día hábil si cae en fin de semana o feriado
-// (reutiliza la misma lógica y el mismo calendario de feriados que usan los cheques).
+// (se usa para la fecha de acreditación de cheques: tiene que ser hacia
+// adelante, porque el dinero no puede estar disponible antes de tiempo).
 const ajustarADiaHabil = (fecha) => {
   const f = new Date(fecha);
   while (!esDiaHabil(f)) f.setDate(f.getDate() + 1);
+  return f;
+};
+
+// Ajusta una fecha al día hábil ANTERIOR si cae en fin de semana o feriado
+// (se usa para vencimientos de cuota de préstamo: si el 10 cae sábado o
+// domingo, el vencimiento pasa al viernes anterior, no al lunes siguiente).
+const ajustarADiaHabilAnterior = (fecha) => {
+  const f = new Date(fecha);
+  while (!esDiaHabil(f)) f.setDate(f.getDate() - 1);
   return f;
 };
 
@@ -1632,7 +1642,7 @@ const ajustarADiaHabil = (fecha) => {
 // ============================================================
 const MESES_ANCLA_CAMPO = [0, 5]; // enero, junio (0-indexado)
 
-const fechaAnclaCampo = (mes, anio) => ajustarADiaHabil(new Date(anio, mes, 10));
+const fechaAnclaCampo = (mes, anio) => ajustarADiaHabilAnterior(new Date(anio, mes, 10));
 
 // Determina la fecha de la PRIMERA cuota según cuándo se pide el préstamo:
 //  - Pedido del 1 al 20 del mes: primera cuota = próximo 10/ene o 10/jun.
@@ -1721,7 +1731,7 @@ const indiceMesPrimeraCuota = (fechaOtorgamiento, mesesPeriodo) => {
 };
 const fechaCuotaRegular = (indiceMesBase, mesesPeriodo, i) => {
   const idx = indiceMesBase + mesesPeriodo * i;
-  return ajustarADiaHabil(new Date(Math.floor(idx / 12), idx % 12, 10));
+  return ajustarADiaHabilAnterior(new Date(Math.floor(idx / 12), idx % 12, 10));
 };
 
 const generarCronograma = (capital, tep, n, fechaInicio, mesesPeriodo, gracia) => {
