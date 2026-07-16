@@ -990,7 +990,7 @@ const db = firebase.firestore();
 // un admin marca una versión nueva como la única válida.
 // IMPORTANTE: subir este número cada vez que se entregue un archivo nuevo.
 // ============================================================
-const APP_VERSION = 22;
+const APP_VERSION = 23;
 let versionBloqueada = false;
 
 const verificarVersion = async () => {
@@ -1874,16 +1874,17 @@ const actualizarCapital = () => {
   const gracia = parseInt(document.getElementById('gracia').value) || 0;
   const fechaOtorg = document.getElementById('fecha').value || new Date().toISOString().slice(0,10);
   const cantidadCuotas = mesesPeriodo > 0 ? Math.round(plazoMeses / mesesPeriodo) : 0;
+  const fechaOtorgObj = new Date(fechaOtorg + 'T00:00:00'); // sin la hora, el navegador puede interpretar un día antes
 
   let capital = monto;
   if (lineaSeleccionadaActual && cantidadCuotas > 0 && tna > 0) {
     const tep = calcularTEP(tna, mesesPeriodo);
     const graciaSeguro = Math.min(gracia, Math.max(cantidadCuotas - 1, 0));
     capital = esCampo
-      ? calcularCapitalDesdeNeto(monto, lineaSeleccionadaActual, tep, cantidadCuotas, new Date(fechaOtorg), mesesPeriodo, graciaSeguro, true, tna)
-      : calcularCapitalDesdeNeto(monto, lineaSeleccionadaActual, tep, cantidadCuotas, new Date(fechaOtorg), mesesPeriodo, graciaSeguro);
+      ? calcularCapitalDesdeNeto(monto, lineaSeleccionadaActual, tep, cantidadCuotas, fechaOtorgObj, mesesPeriodo, graciaSeguro, true, tna)
+      : calcularCapitalDesdeNeto(monto, lineaSeleccionadaActual, tep, cantidadCuotas, fechaOtorgObj, mesesPeriodo, graciaSeguro);
   } else if (lineaSeleccionadaActual) {
-    capital = calcularCapitalDesdeNeto(monto, lineaSeleccionadaActual, 0, 1, new Date(fechaOtorg), 1, 0);
+    capital = calcularCapitalDesdeNeto(monto, lineaSeleccionadaActual, 0, 1, fechaOtorgObj, 1, 0);
   }
   document.getElementById('capitalCalc').textContent = fmt(capital, 2, moneda);
 };
@@ -1926,7 +1927,7 @@ const calcularPrestamo = () => {
   const tep = calcularTEP(tna, mesesPeriodo);
   const tea = calcularTEA(tep, mesesPeriodo);
   const tem = calcularTEM(tea);
-  const fechaObj = new Date(fechaOtorg);
+  const fechaObj = new Date(fechaOtorg + 'T00:00:00'); // sin la hora, el navegador puede interpretar un día antes
 
   const capital = esCampo
     ? calcularCapitalDesdeNeto(monto, lineaSeleccionadaActual, tep, cantidadCuotas, fechaObj, mesesPeriodo, gracia, true, tna)
