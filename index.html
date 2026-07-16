@@ -684,7 +684,6 @@
                     <div class="grid grid-cols-2 gap-3 text-sm">
                       <p><span class="font-semibold" id="propLblCuota">Cuota:</span> <span id="propCuota" class="text-lg" style="color:var(--purple-700);"></span></p>
                       <p><span class="font-semibold" id="propLblTEM">TEM:</span> <span id="propTEM"></span></p>
-                      <p><span class="font-semibold" id="propLblTEA">TEA:</span> <span id="propTEA"></span></p>
                       <p><span class="font-semibold" id="propLblTotalInt">Total intereses:</span> <span id="propTotalInt"></span></p>
                       <p><span class="font-semibold" id="propLblTotalAbo">Total a abonar:</span> <span id="propTotalAbo" class="text-lg" style="color:var(--purple-700);"></span></p>
                     </div>
@@ -990,7 +989,7 @@ const db = firebase.firestore();
 // un admin marca una versión nueva como la única válida.
 // IMPORTANTE: subir este número cada vez que se entregue un archivo nuevo.
 // ============================================================
-const APP_VERSION = 23;
+const APP_VERSION = 24;
 let versionBloqueada = false;
 
 const verificarVersion = async () => {
@@ -2125,26 +2124,26 @@ const actualizarPropuesta = () => {
     document.getElementById('propTablaCheques').innerHTML = s.cheques.map(c => `
       <tr>
         <td>${c.numero}</td>
-        <td>${fmt(c.valorNominal, 2, s.moneda)}</td>
+        <td>${fmt(redondearPesos(c.valorNominal), 0, s.moneda)}</td>
         <td>${new Date(c.fechaCobro + 'T00:00:00').toLocaleDateString('es-AR')}</td>
         <td>${new Date(c.fechaAcreditacion + 'T00:00:00').toLocaleDateString('es-AR')}</td>
         <td>${c.dias}</td>
         <td>${fmtNum(c.tna)}%</td>
-        <td>${fmt(c.descuento, 2, s.moneda)}</td>
+        <td>${fmt(redondearPesos(c.descuento), 0, s.moneda)}</td>
       </tr>`).join('');
 
     document.getElementById('propChCantidad').textContent = s.cheques.length === 1 ? '1 cheque' : `${s.cheques.length} cheques`;
     document.getElementById('propChLinea').textContent = s.linea;
-    document.getElementById('propChValorTotal').textContent = fmt(s.sumaValorNominal, 2, s.moneda);
+    document.getElementById('propChValorTotal').textContent = fmt(redondearPesos(s.sumaValorNominal), 0, s.moneda);
     document.getElementById('propChFechaOp').textContent = new Date(s.fechaOperacion + 'T00:00:00').toLocaleDateString('es-AR');
     document.getElementById('propChPromediosRow').classList.toggle('hidden', s.cheques.length <= 1);
     if (s.cheques.length > 1) {
       document.getElementById('propChPlazoProm').textContent = `${s.diasPromedioPonderado.toFixed(1)} días`;
       document.getElementById('propChTasaProm').textContent = fmtNum(s.tasaPromedioPonderada) + '%';
     }
-    document.getElementById('propChSellado').textContent = fmt(s.sumaSelladoProv, 2, s.moneda);
-    document.getElementById('propChGastoAdmin').textContent = fmt(s.sumaGastoAdmin, 2, s.moneda);
-    document.getElementById('propChSelladoSolic').textContent = fmt(s.selladoSolic, 2, s.moneda);
+    document.getElementById('propChSellado').textContent = fmt(redondearPesos(s.sumaSelladoProv), 0, s.moneda);
+    document.getElementById('propChGastoAdmin').textContent = fmt(redondearPesos(s.sumaGastoAdmin), 0, s.moneda);
+    document.getElementById('propChSelladoSolic').textContent = fmt(redondearPesos(s.selladoSolic), 0, s.moneda);
     document.getElementById('propChNeto').textContent = fmt(redondearPesos(s.montoNeto), 0, s.moneda);
     return;
   }
@@ -2157,10 +2156,10 @@ const actualizarPropuesta = () => {
   const periodTexto = { 1: 'Mensual', 2: 'Bimestral', 3: 'Trimestral', 6: 'Semestral', 12: 'Anual' };
   document.getElementById('propTituloCondiciones').textContent = 'Condiciones del crédito';
   document.getElementById('propLblMonto').textContent = 'Monto neto:';
-  document.getElementById('propMonto').textContent = fmt(s.monto, 2, s.moneda);
+  document.getElementById('propMonto').textContent = fmt(redondearPesos(s.monto), 0, s.moneda);
   document.getElementById('propLinea').textContent = s.linea;
   document.getElementById('propLblCapital').textContent = 'Capital:';
-  document.getElementById('propCapital').textContent = fmt(s.capital, 2, s.moneda);
+  document.getElementById('propCapital').textContent = fmt(redondearPesos(s.capital), 0, s.moneda);
   document.getElementById('propLblTNA').textContent = 'TNA:';
   document.getElementById('propTNA').textContent = fmtNum(s.tna) + '%';
   document.getElementById('propLblPlazo').textContent = 'Plazo:';
@@ -2177,12 +2176,10 @@ const actualizarPropuesta = () => {
   document.getElementById('propCuota').textContent = fmt(redondearPesos(s.cuota), 0, s.moneda);
   document.getElementById('propLblTEM').textContent = 'TEM:';
   document.getElementById('propTEM').textContent = fmtNum(s.tem) + '%';
-  document.getElementById('propLblTEA').textContent = 'TEA:';
-  document.getElementById('propTEA').textContent = fmtNum(s.tea) + '%';
   document.getElementById('propLblTotalInt').textContent = 'Total intereses:';
-  document.getElementById('propTotalInt').textContent = fmt(s.totalIntereses, 2, s.moneda);
+  document.getElementById('propTotalInt').textContent = fmt(redondearPesos(s.totalIntereses), 0, s.moneda);
   document.getElementById('propLblTotalAbo').textContent = 'Total a abonar:';
-  document.getElementById('propTotalAbo').textContent = fmt(s.totalAbonado, 2, s.moneda);
+  document.getElementById('propTotalAbo').textContent = fmt(redondearPesos(s.totalAbonado), 0, s.moneda);
 };
 
 // Versión informal/llamativa para compartir por WhatsApp: solo lo esencial
@@ -2196,10 +2193,10 @@ const actualizarPropuestaWhatsapp = () => {
     document.getElementById('waMonto').textContent = fmt(redondearPesos(s.montoNeto), 0, s.moneda);
     document.getElementById('waSubtitulo').textContent = 'te quedan en mano ahora';
     if (s.cheques.length === 1) {
-      waGracia.textContent = `Se cobra el ${new Date(s.cheques[0].fechaAcreditacion + 'T00:00:00').toLocaleDateString('es-AR')} · valor nominal ${fmt(s.sumaValorNominal, 2, s.moneda)}`;
+      waGracia.textContent = `Se cobra el ${new Date(s.cheques[0].fechaAcreditacion + 'T00:00:00').toLocaleDateString('es-AR')} · valor nominal ${fmt(redondearPesos(s.sumaValorNominal), 0, s.moneda)}`;
       document.getElementById('waCuotas').textContent = '';
     } else {
-      document.getElementById('waCuotas').textContent = `Valor nominal total: ${fmt(s.sumaValorNominal, 2, s.moneda)}`;
+      document.getElementById('waCuotas').textContent = `Valor nominal total: ${fmt(redondearPesos(s.sumaValorNominal), 0, s.moneda)}`;
       waGracia.textContent = s.cheques.map(c => `Cheque ${c.numero}: se cobra el ${new Date(c.fechaAcreditacion + 'T00:00:00').toLocaleDateString('es-AR')}`).join(' · ');
     }
     waGracia.classList.remove('hidden');
@@ -2207,7 +2204,7 @@ const actualizarPropuestaWhatsapp = () => {
   }
 
   document.getElementById('waTitulo').textContent = 'Tu préstamo';
-  document.getElementById('waMonto').textContent = fmt(s.monto, 0, s.moneda);
+  document.getElementById('waMonto').textContent = fmt(redondearPesos(s.monto), 0, s.moneda);
   document.getElementById('waSubtitulo').textContent = 'te quedan en mano';
   document.getElementById('waCuotas').textContent = `${s.esCampo ? (s.cantidadCuotas + ' cuota' + (s.cantidadCuotas === 1 ? '' : 's') + ' (Campo)') : fraseCuotas(s.cantidadCuotas, s.mesesPeriodo)} de ${fmt(redondearPesos(s.cuota), 0, s.moneda)}`;
   if (s.gracia > 0 && s.diasPrimeraCuota) {
