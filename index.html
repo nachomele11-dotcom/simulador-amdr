@@ -962,6 +962,21 @@ const fraseCuotas = (n, mesesPeriodo) => {
   if (n === 1) return `1 cuota${adjetivosSingular[mesesPeriodo] || ''}`;
   return `${n} cuotas${adjetivosPlural[mesesPeriodo] || ''}`;
 };
+// Detecta si las cuotas de un cronograma NO son todas iguales (típico de Campo
+// y Modificable, donde cada tramo tiene una cantidad de meses distinta — y por
+// lo tanto una tasa y una cuota distintas). Se ignoran diferencias de centavos
+// (redondeo normal de cierre), solo cuenta como "variable" si la diferencia es
+// real. Cuando es variable, hay que mostrar la cuota PROMEDIO en vez de "la" cuota.
+const cuotaEsVariable = (cronograma) => {
+  const normales = cronograma.filter(c => c.tipo === 'normal');
+  if (normales.length <= 1) return false;
+  const promedio = normales.reduce((s, c) => s + c.cuota, 0) / normales.length;
+  return normales.some(c => Math.abs(c.cuota - promedio) > Math.max(1, promedio * 0.005));
+};
+const cuotaPromedioDe = (cronograma) => {
+  const normales = cronograma.filter(c => c.tipo === 'normal');
+  return normales.reduce((s, c) => s + c.cuota, 0) / normales.length;
+};
 const showToast = (msg, type = 'success') => {
   const colors = { success: '#256341', error: '#9A3131', info: '#402150' };
   const toast = document.createElement('div');
@@ -997,7 +1012,7 @@ const db = firebase.firestore();
 // un admin marca una versión nueva como la única válida.
 // IMPORTANTE: subir este número cada vez que se entregue un archivo nuevo.
 // ============================================================
-const APP_VERSION = 25;
+const APP_VERSION = 26;
 let versionBloqueada = false;
 
 const verificarVersion = async () => {
@@ -2042,9 +2057,12 @@ const calcularPrestamo = () => {
       : generarCronograma(capital, tep, cantidadCuotas, fechaObj, mesesPeriodo, gracia);
   // La cuota "de referencia" que se muestra es la de una cuota normal (no la última,
   // que puede diferir por el cierre de redondeo) — se toma del propio cronograma para
-  // garantizar que sea siempre consistente con lo que se ve en la tabla.
+  // garantizar que sea siempre consistente con lo que se ve en la tabla. Cuando las
+  // cuotas NO son todas iguales (Campo, Modificable, o cualquier caso con tramos de
+  // distinta duración) se muestra el PROMEDIO en vez de "la" cuota.
   const cuotasNormales = cronogramaActual.filter(c => c.tipo === 'normal');
-  const cuota = cuotasNormales[0].cuota;
+  const cuotaVariable = cuotaEsVariable(cronogramaActual);
+  const cuota = cuotaVariable ? cuotaPromedioDe(cronogramaActual) : cuotasNormales[0].cuota;
 
   const flujosCuotas = cronogramaActual.map(c => c.cuota);
   const cft = calcularCFT(monto, flujosCuotas, mesesPeriodo);
@@ -2067,15 +2085,16 @@ const calcularPrestamo = () => {
 
   simulacionActual = {
     id: Date.now(), fecha: new Date().toISOString(), tipo: 'prestamo',
-    cliente, cuit: document.getElementById('cuit').value.trim(), moneda, monto, capital, tna, plazoMeses, mesesPeriodo, esCampo, esModificable, cuotasModificables: mesesCuotasModificable, cantidadCuotas,
+    cliente, cuit: document.getElementById('cuit').value.trim(), moneda, monto, capital, tna, plazoMeses, mesesPeriodo, esCampo, esModificable, cuotasModificables: mesesCuotasModificable, cantidadCuotas, cuotaVariable,
     fechaOtorg, gracia, cuota, tep, tea, tem, cft, totalIntereses, totalAbonado, diasPrimeraCuota,
     linea: lineaSeleccionadaActual ? lineaSeleccionadaActual.nombre : 'Sin línea',
     lineaData: lineaSeleccionadaActual,
     cronograma: cronogramaActual
   };
 
+  document.getElementById('lblCuota').textContent = cuotaVariable ? 'Cuota promedio' : 'Cuota';
   document.getElementById('resCuota').textContent = fmt(cuota, 2, moneda);
-  document.getElementById('resNCuotas').textContent = esCampo ? `${cantidadCuotas} cuotas (Campo)` : fraseCuotas(cantidadCuotas, mesesPeriodo);
+  document.getElementById('resNCuotas').textContent = esCampo ? `${cantidadCuotas} cuotas (Campo)` : esModificable ? `${cantidadCuotas} cuota${cantidadCuotas === 1 ? '' : 's'} (Modificable)` : fraseCuotas(cantidadCuotas, mesesPeriodo);
   document.getElementById('resTEM').textContent = fmtNum(tem) + '%';
   document.getElementById('resTEA').textContent = fmtNum(tea) + '%';
   document.getElementById('resCFT').textContent = fmtNum(cft) + '%';
@@ -2279,7 +2298,7 @@ const actualizarPropuesta = () => {
   document.getElementById('propGraciaRow').classList.toggle('hidden', !s.gracia || s.gracia === 0);
   document.getElementById('propLblFecha').textContent = 'Fecha otorg.:';
   document.getElementById('propFecha').textContent = new Date(s.fechaOtorg + 'T00:00:00').toLocaleDateString('es-AR');
-  document.getElementById('propLblCuota').textContent = 'Cuota:';
+  document.getElementById('propLblCuota').textContent = s.cuotaVariable ? 'Cuota promedio:' : 'Cuota:';
   document.getElementById('propCuota').textContent = fmt(redondearPesos(s.cuota), 0, s.moneda);
   document.getElementById('propLblTEM').textContent = 'TEM:';
   document.getElementById('propTEM').textContent = fmtNum(s.tem) + '%';
@@ -2316,7 +2335,7 @@ const actualizarPropuestaWhatsapp = () => {
   const textoCuotasWa = s.esCampo ? (s.cantidadCuotas + ' cuota' + (s.cantidadCuotas === 1 ? '' : 's') + ' (Campo)')
     : s.esModificable ? (s.cantidadCuotas + ' cuota' + (s.cantidadCuotas === 1 ? '' : 's') + ' (Modificable)')
     : fraseCuotas(s.cantidadCuotas, s.mesesPeriodo);
-  document.getElementById('waCuotas').textContent = `${textoCuotasWa} de ${fmt(redondearPesos(s.cuota), 0, s.moneda)}`;
+  document.getElementById('waCuotas').textContent = `${textoCuotasWa}${s.cuotaVariable ? ', promedio' : ' de'} ${fmt(redondearPesos(s.cuota), 0, s.moneda)}`;
   if (s.gracia > 0 && s.diasPrimeraCuota) {
     waGracia.textContent = `Pagás tu primera cuota en ${s.diasPrimeraCuota} días`;
     waGracia.classList.remove('hidden');
@@ -2590,8 +2609,9 @@ const verSimulacion = (id) => {
 
   actualizarCapital();
 
+  document.getElementById('lblCuota').textContent = sim.cuotaVariable ? 'Cuota promedio' : 'Cuota';
   document.getElementById('resCuota').textContent = fmt(sim.cuota, 2, sim.moneda);
-  document.getElementById('resNCuotas').textContent = fraseCuotas(sim.cantidadCuotas, sim.mesesPeriodo);
+  document.getElementById('resNCuotas').textContent = sim.esCampo ? `${sim.cantidadCuotas} cuotas (Campo)` : sim.esModificable ? `${sim.cantidadCuotas} cuota${sim.cantidadCuotas === 1 ? '' : 's'} (Modificable)` : fraseCuotas(sim.cantidadCuotas, sim.mesesPeriodo);
   document.getElementById('resTEM').textContent = fmtNum(sim.tem) + '%';
   document.getElementById('resTEA').textContent = fmtNum(sim.tea) + '%';
   document.getElementById('resCFT').textContent = fmtNum(sim.cft) + '%';
