@@ -341,6 +341,10 @@
           <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/></svg>
           Simulaciones guardadas
         </button>
+        <button class="nav-item" data-main-tab="comparador">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 17V9m6 8V5m-11 12v-3M4 21h16"/></svg>
+          Comparador de cuotas
+        </button>
       </nav>
       <div id="sidebar-user" class="px-3 py-3 mx-2 mb-1 rounded-lg" style="background:rgba(255,255,255,0.07);">
         <p id="userNombre" class="text-sm font-semibold text-white truncate">—</p>
@@ -372,6 +376,7 @@
           <button class="nav-item active whitespace-nowrap" data-main-tab="simulador">Simulador</button>
           <button class="nav-item whitespace-nowrap" data-main-tab="lineas">Líneas</button>
           <button class="nav-item whitespace-nowrap" data-main-tab="guardadas">Guardadas</button>
+          <button class="nav-item whitespace-nowrap" data-main-tab="comparador">Comparador</button>
         </div>
         <button id="btnLogoutMobile" class="text-[0.7rem] whitespace-nowrap pl-2" style="color:#D9CBDF;">Salir</button>
       </div>
@@ -923,6 +928,57 @@
         </div>
       </main>
 
+      <main id="main-comparador" class="main-content px-4 sm:px-6 py-5 hidden">
+        <div class="card p-4 sm:p-5">
+          <h2 class="font-display text-lg mb-1" style="font-weight:600;">Comparador de cuotas</h2>
+          <p class="text-xs mb-5" style="color:var(--ink-faint);">Armá una imagen para mandarle al cliente con varias opciones de plazo de una sola vez. Elegís si fijás el monto o la cuota, y qué plazos mostrar.</p>
+
+          <div class="grid sm:grid-cols-2 gap-4 mb-4">
+            <div>
+              <label class="field-label">Cliente (opcional)</label>
+              <input id="compCliente" type="text" class="input-field" placeholder="Nombre del cliente">
+            </div>
+            <div>
+              <label class="field-label">Línea de crédito</label>
+              <select id="compLinea" class="input-field"></select>
+            </div>
+          </div>
+
+          <div class="grid sm:grid-cols-2 gap-4 mb-4">
+            <div>
+              <label class="field-label">¿Qué querés fijar?</label>
+              <select id="compModo" class="input-field">
+                <option value="monto">Monto neto</option>
+                <option value="cuota">Cuota</option>
+              </select>
+            </div>
+            <div>
+              <label class="field-label" id="compValorLabel">Monto neto</label>
+              <input id="compValor" type="number" class="input-field" placeholder="0" min="0" step="1000">
+            </div>
+          </div>
+
+          <div class="mb-5">
+            <label class="field-label">Cantidad de cuotas a comparar</label>
+            <div id="listaPlazosComparador" class="flex flex-wrap gap-2 mb-2"></div>
+            <button id="btnAgregarPlazoComparador" type="button" class="btn btn-ghost btn-sm">+ Agregar plazo</button>
+          </div>
+
+          <button id="btnGenerarComparador" class="btn btn-primary">Generar imagen</button>
+
+          <div id="comparadorResultadoWrap" class="hidden mt-7">
+            <div class="flex justify-between items-center mb-4 flex-wrap gap-2 no-print">
+              <h3 class="font-display text-lg" style="font-weight:600;">Vista previa</h3>
+              <div class="flex gap-2 flex-wrap">
+                <button id="btnDescargarComparador" class="btn btn-secondary btn-sm">Descargar imagen</button>
+                <button id="btnCopiarComparador" class="btn btn-ghost btn-sm">Copiar imagen</button>
+              </div>
+            </div>
+            <div id="comparador-whatsapp" style="max-width:460px; margin:0 auto;"></div>
+          </div>
+        </div>
+      </main>
+
     </div><!-- /main-scroll -->
   </div><!-- /app-shell -->
 
@@ -1028,7 +1084,7 @@ const db = firebase.firestore();
 // un admin marca una versión nueva como la única válida.
 // IMPORTANTE: subir este número cada vez que se entregue un archivo nuevo.
 // ============================================================
-const APP_VERSION = 28;
+const APP_VERSION = 29;
 let versionBloqueada = false;
 
 const verificarVersion = async () => {
@@ -1767,6 +1823,150 @@ const sincronizarUltimaCuotaModificable = () => {
   if (cuotasModificablesActuales.length === 0) cuotasModificablesActuales = [{ mes: plazo }];
   else cuotasModificablesActuales[cuotasModificablesActuales.length - 1].mes = plazo;
   renderCuotasModificables();
+};
+
+// ============================================================
+// COMPARADOR DE CUOTAS: dado un monto neto FIJO o una cuota FIJA, compara
+// varios plazos a la vez y arma una imagen tipo "propuesta WhatsApp" con
+// el resultado de cada uno, para mandarle al cliente.
+// ============================================================
+let plazosComparadorActuales = [6, 12, 18, 24, 36];
+
+const renderPlazosComparador = () => {
+  const cont = document.getElementById('listaPlazosComparador');
+  cont.innerHTML = plazosComparadorActuales.map((p, i) => `
+    <div class="flex items-center gap-1 rounded-lg pl-2 pr-1 py-1" style="background:var(--paper-deep); border:1px solid var(--line);">
+      <input type="number" class="plazo-comp-input" data-i="${i}" value="${p}" min="1" step="1"
+        style="width:46px; border:none; background:transparent; font-size:0.85rem; font-weight:600; color:var(--purple-700);">
+      <span class="text-xs" style="color:var(--ink-faint);">meses</span>
+      <button type="button" onclick="quitarPlazoComparador(${i})" class="text-xs ml-1" style="color:var(--red-700); padding:0 4px;">×</button>
+    </div>
+  `).join('');
+  cont.querySelectorAll('.plazo-comp-input').forEach(el => el.addEventListener('input', e => {
+    plazosComparadorActuales[+e.target.dataset.i] = parseInt(e.target.value) || 0;
+  }));
+};
+
+const agregarPlazoComparador = () => {
+  const ultimo = plazosComparadorActuales[plazosComparadorActuales.length - 1];
+  plazosComparadorActuales.push(ultimo ? ultimo + 6 : 6);
+  renderPlazosComparador();
+};
+
+const quitarPlazoComparador = (i) => {
+  plazosComparadorActuales.splice(i, 1);
+  renderPlazosComparador();
+};
+window.quitarPlazoComparador = quitarPlazoComparador;
+
+const poblarLineasComparador = () => {
+  const sel = document.getElementById('compLinea');
+  const lineas = cargarLineas().filter(l => (l.tipo || 'prestamo') !== 'cheque');
+  sel.innerHTML = lineas.map(l => `<option value="${l.id}">${l.nombre}</option>`).join('') || '<option value="">No hay líneas de préstamo cargadas</option>';
+};
+
+// Inversa de calcularCuotaFrances: dado el capital de la cuota, ¿qué capital admite?
+const capitalDesdeCuota = (cuotaFija, tep, n) => {
+  if (n <= 0) return 0;
+  if (tep === 0) return cuotaFija * n;
+  return cuotaFija * (Math.pow(1 + tep, n) - 1) / (tep * Math.pow(1 + tep, n));
+};
+
+// Inversa de calcularCapitalDesdeNeto: dado el capital (bruto), ¿cuál es el monto neto?
+const montoNetoDesdeCapital = (capital, linea, tep, n, fechaInicio, gracia) => {
+  if (!linea) return capital;
+  const gastosFijos = linea.selladoSolic || 0;
+  let fracSegVida = 0;
+  if (linea.segVida === 'S' && linea.segVidaPorc > 0) {
+    const cronogramaUnitario = generarCronograma(1, tep, n, fechaInicio, 1, gracia);
+    const sumaSaldosUnit = cronogramaUnitario.reduce((sum, c) => sum + c.saldoInicial, 0);
+    fracSegVida = (linea.segVidaPorc / 100) * sumaSaldosUnit;
+  }
+  const fracSellado = (linea.sellado || 0) / 100;
+  const fracGastoOtorg = (linea.gastoOtorg || 0) / 100;
+  const fracBase = fracSellado + fracGastoOtorg + fracSegVida;
+  const fracIva = fracBase * ((linea.iva || 0) / 100);
+  const fracTotal = fracBase + fracIva;
+  return capital * (1 - fracTotal) - gastosFijos;
+};
+
+const generarComparador = () => {
+  const lineaId = document.getElementById('compLinea').value;
+  const lineas = cargarLineas();
+  const linea = lineas.find(l => l.id === lineaId);
+  if (!linea) return showToast('Elegí una línea de crédito', 'error');
+
+  const modo = document.getElementById('compModo').value;
+  const valor = parseFloat(document.getElementById('compValor').value);
+  if (!valor || valor <= 0) return showToast(modo === 'monto' ? 'Ingresá el monto neto' : 'Ingresá la cuota', 'error');
+
+  const plazosLimpios = [...new Set(plazosComparadorActuales.filter(p => p > 0))].sort((a, b) => a - b);
+  if (plazosLimpios.length === 0) return showToast('Agregá al menos un plazo para comparar', 'error');
+
+  const cliente = document.getElementById('compCliente').value.trim();
+  const fechaHoy = new Date();
+  const resultados = [];
+
+  for (const n of plazosLimpios) {
+    const tramo = linea.tramosTNA && linea.tramosTNA.length > 0 ? buscarTramoTNA(linea.tramosTNA, n) : null;
+    const tna = tramo ? tramo.tna : linea.tna;
+    if (!tna || tna <= 0) continue; // sin TNA configurada para este plazo (línea con tramos que no lo cubre)
+    const tep = calcularTEP(tna, 1);
+
+    if (modo === 'monto') {
+      const capital = calcularCapitalDesdeNeto(valor, linea, tep, n, fechaHoy, 1, 0);
+      const cuota = calcularCuotaFrances(capital, tep, n);
+      resultados.push({ plazo: n, cuota });
+    } else {
+      const capital = capitalDesdeCuota(valor, tep, n);
+      const montoNeto = montoNetoDesdeCapital(capital, linea, tep, n, fechaHoy, 0);
+      if (montoNeto <= 0) continue;
+      resultados.push({ plazo: n, monto: montoNeto });
+    }
+  }
+
+  if (resultados.length === 0) return showToast('No se pudo calcular ningún plazo (revisá la TNA de la línea)', 'error');
+
+  const logoSrc = document.getElementById('logoPropuesta').src;
+  const moneda = linea.moneda || 'ARS';
+
+  let contenidoHtml;
+  if (modo === 'monto') {
+    contenidoHtml = `
+      <p style="font-family:'IBM Plex Sans',sans-serif; font-size:0.72rem; letter-spacing:0.08em; text-transform:uppercase; color:#C9B8D1; margin:0;">Tu préstamo</p>
+      <p style="font-family:'Fraunces',serif; font-size:2.4rem; font-weight:700; color:#fff; margin:6px 0 0; line-height:1.05;">${fmt(redondearPesos(valor), 0, moneda)}</p>
+      <p style="font-size:0.78rem; color:#C9B8D1; margin:2px 0 22px;">te quedan en mano</p>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+        ${resultados.map(r => `
+          <div style="background:rgba(255,255,255,0.08); border-radius:14px; padding:16px 10px;">
+            <p style="color:#fff; font-size:1.05rem; font-weight:700; margin:0;">${r.plazo} cuotas</p>
+            <p style="color:#C9B8D1; font-size:0.78rem; margin:4px 0 0;">de ${fmt(redondearPesos(r.cuota), 0, moneda)}</p>
+          </div>`).join('')}
+      </div>`;
+  } else {
+    contenidoHtml = `
+      <p style="font-family:'IBM Plex Sans',sans-serif; font-size:0.72rem; letter-spacing:0.08em; text-transform:uppercase; color:#C9B8D1; margin:0 0 18px;">Elegí tu plazo</p>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+        ${resultados.map(r => `
+          <div style="background:rgba(255,255,255,0.08); border-radius:14px; padding:16px 10px;">
+            <p style="color:#C9B8D1; font-size:0.68rem; text-transform:uppercase; letter-spacing:0.05em; margin:0;">Hasta</p>
+            <p style="color:#fff; font-size:1.3rem; font-weight:700; margin:4px 0;">${fmt(redondearPesos(r.monto), 0, moneda)}</p>
+            <p style="color:#C9B8D1; font-size:0.72rem; margin:0;">en ${r.plazo} cuotas de ${fmt(redondearPesos(valor), 0, moneda)}</p>
+          </div>`).join('')}
+      </div>`;
+  }
+
+  document.getElementById('comparador-whatsapp').innerHTML = `
+    <div style="background:var(--purple-900); border-radius:22px; padding:36px 26px; text-align:center;">
+      <div style="background:#fff; display:table; margin:0 auto 24px; padding:10px 20px; border-radius:12px;">
+        <img src="${logoSrc}" style="height:32px; width:111px; display:block;">
+      </div>
+      ${contenidoHtml}
+      ${cliente ? `<p style="color:#C9B8D1; font-size:0.72rem; margin-top:20px;">Propuesta para ${cliente}</p>` : ''}
+      <p style="color:#8a7593; font-size:0.65rem; margin-top:${cliente ? '6px' : '20px'};">Mutual AMDR</p>
+    </div>`;
+  document.getElementById('comparadorResultadoWrap').classList.remove('hidden');
+  showToast('Imagen generada', 'success');
 };
 
 // ============================================================
@@ -2953,21 +3153,20 @@ const generarPDFCronograma = async () => {
 // ============================================================
 // IMAGEN (descargar JPG / copiar al portapapeles para WhatsApp)
 // ============================================================
-const descargarImagen = async (elementId, filenamePrefix, bgColor) => {
-  if (!simulacionActual) return showToast('Primero calculá una simulación', 'error');
+const descargarImagen = async (elementId, filenamePrefix, bgColor, nombreArchivo) => {
   showToast('Generando imagen...', 'info');
   const elemento = document.getElementById(elementId);
   await esperarImagenes(elemento);
   const canvas = await html2canvas(elemento, { scale: 2, logging: false, backgroundColor: bgColor });
   const link = document.createElement('a');
-  link.download = `${filenamePrefix}_${simulacionActual.cliente.replace(/\s+/g, '_')}.jpg`;
+  const nombreBase = nombreArchivo || (simulacionActual && simulacionActual.cliente) || 'AMDR';
+  link.download = `${filenamePrefix}_${nombreBase.replace(/\s+/g, '_')}.jpg`;
   link.href = canvas.toDataURL('image/jpeg', 0.92);
   link.click();
   showToast('Imagen descargada', 'success');
 };
 
 const copiarImagen = async (elementId, bgColor) => {
-  if (!simulacionActual) return showToast('Primero calculá una simulación', 'error');
   if (!navigator.clipboard || !window.ClipboardItem) {
     return showToast('Tu navegador no permite copiar imágenes; usá "Descargar imagen"', 'error');
   }
@@ -2999,6 +3198,7 @@ document.querySelectorAll('.nav-item[data-main-tab]').forEach(btn => {
     });
     document.querySelectorAll('.main-content').forEach(c => c.classList.add('hidden'));
     document.getElementById(`main-${tabName}`).classList.remove('hidden');
+    if (tabName === 'comparador') { poblarLineasComparador(); if (plazosComparadorActuales.length === 0) plazosComparadorActuales = [6,12,18,24,36]; renderPlazosComparador(); }
     window.scrollTo({ top: 0, behavior: 'instant' });
   });
 });
@@ -3098,6 +3298,14 @@ document.getElementById('btnImagenFormal').addEventListener('click', () => desca
 document.getElementById('btnCopiarFormal').addEventListener('click', () => copiarImagen('propuesta-print', '#ffffff'));
 document.getElementById('btnImagenWhatsapp').addEventListener('click', () => descargarImagen('propuesta-whatsapp', 'AMDR_WhatsApp', '#33193E'));
 document.getElementById('btnCopiarWhatsapp').addEventListener('click', () => copiarImagen('propuesta-whatsapp', '#33193E'));
+document.getElementById('btnAgregarPlazoComparador').addEventListener('click', agregarPlazoComparador);
+document.getElementById('btnGenerarComparador').addEventListener('click', generarComparador);
+document.getElementById('btnDescargarComparador').addEventListener('click', () => descargarImagen('comparador-whatsapp', 'AMDR_Comparador', '#33193E', document.getElementById('compCliente').value.trim() || 'Comparador'));
+document.getElementById('btnCopiarComparador').addEventListener('click', () => copiarImagen('comparador-whatsapp', '#33193E'));
+document.getElementById('compModo').addEventListener('change', (e) => {
+  document.getElementById('compValorLabel').textContent = e.target.value === 'monto' ? 'Monto neto' : 'Cuota';
+  document.getElementById('comparadorResultadoWrap').classList.add('hidden');
+});
 document.getElementById('btnExportar').addEventListener('click', exportarBackup);
 document.getElementById('btnImportar').addEventListener('click', () => document.getElementById('inputImportar').click());
 document.getElementById('inputImportar').addEventListener('change', (e) => {
