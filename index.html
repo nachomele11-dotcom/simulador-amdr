@@ -1084,7 +1084,7 @@ const db = firebase.firestore();
 // un admin marca una versión nueva como la única válida.
 // IMPORTANTE: subir este número cada vez que se entregue un archivo nuevo.
 // ============================================================
-const APP_VERSION = 30;
+const APP_VERSION = 31;
 let versionBloqueada = false;
 
 const verificarVersion = async () => {
@@ -1832,12 +1832,12 @@ const sincronizarUltimaCuotaModificable = () => {
 // ============================================================
 let plazosComparadorActuales = [6, 12, 18, 24, 36];
 
-const renderPlazosComparador = () => {
+const renderPlazosComparador = (enfocarUltimo = false) => {
   const cont = document.getElementById('listaPlazosComparador');
   cont.innerHTML = plazosComparadorActuales.map((p, i) => `
-    <div class="flex items-center gap-1 rounded-lg pl-2 pr-1 py-1" style="background:var(--paper-deep); border:1px solid var(--line);">
+    <div class="flex items-center gap-1 rounded-lg pl-2 pr-1 py-1" style="background:#fff; border:1px solid var(--line);">
       <input type="number" class="plazo-comp-input" data-i="${i}" value="${p}" min="1" step="1"
-        style="width:46px; border:none; background:transparent; font-size:0.85rem; font-weight:600; color:var(--purple-700);">
+        style="width:50px; border:1px solid var(--line); border-radius:6px; padding:3px 4px; font-size:0.85rem; font-weight:600; color:var(--purple-700); text-align:center;">
       <span class="text-xs" style="color:var(--ink-faint);">meses</span>
       <button type="button" onclick="quitarPlazoComparador(${i})" class="text-xs ml-1" style="color:var(--red-700); padding:0 4px;">×</button>
     </div>
@@ -1845,12 +1845,17 @@ const renderPlazosComparador = () => {
   cont.querySelectorAll('.plazo-comp-input').forEach(el => el.addEventListener('input', e => {
     plazosComparadorActuales[+e.target.dataset.i] = parseInt(e.target.value) || 0;
   }));
+  if (enfocarUltimo) {
+    const inputs = cont.querySelectorAll('.plazo-comp-input');
+    const ultimoInput = inputs[inputs.length - 1];
+    if (ultimoInput) { ultimoInput.focus(); ultimoInput.select(); }
+  }
 };
 
 const agregarPlazoComparador = () => {
   const ultimo = plazosComparadorActuales[plazosComparadorActuales.length - 1];
   plazosComparadorActuales.push(ultimo ? ultimo + 6 : 6);
-  renderPlazosComparador();
+  renderPlazosComparador(true);
 };
 
 const quitarPlazoComparador = (i) => {
@@ -1888,15 +1893,6 @@ const montoNetoDesdeCapital = (capital, linea, tep, n, fechaInicio, gracia) => {
   const fracIva = fracBase * ((linea.iva || 0) / 100);
   const fracTotal = fracBase + fracIva;
   return capital * (1 - fracTotal) - gastosFijos;
-};
-
-// Si hay una cantidad impar de tarjetas, la última queda sola en su fila —
-// esta función le da el estilo para que ocupe todo el ancho y quede
-// centrada (en vez de pegada a la izquierda).
-const esImparYUltima = (i, total) => {
-  const esImpar = total % 2 === 1;
-  const esUltima = i === total - 1;
-  return (esImpar && esUltima) ? 'grid-column:1/-1; max-width:calc(50% - 6px); margin:0 auto;' : '';
 };
 
 const generarComparador = () => {
@@ -1945,9 +1941,9 @@ const generarComparador = () => {
       <p style="font-family:'IBM Plex Sans',sans-serif; font-size:0.72rem; letter-spacing:0.08em; text-transform:uppercase; color:#C9B8D1; margin:0;">Tu préstamo</p>
       <p style="font-family:'Fraunces',serif; font-size:2.4rem; font-weight:700; color:#fff; margin:6px 0 0; line-height:1.05;">${fmt(redondearPesos(valor), 0, moneda)}</p>
       <p style="font-size:0.78rem; color:#C9B8D1; margin:2px 0 22px;">te quedan en mano</p>
-      <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
-        ${resultados.map((r, i) => `
-          <div style="${esImparYUltima(i, resultados.length)} background:rgba(255,255,255,0.08); border-radius:14px; padding:16px 10px;">
+      <div style="display:flex; flex-wrap:wrap; justify-content:center; gap:12px;">
+        ${resultados.map(r => `
+          <div style="width:calc(50% - 6px); box-sizing:border-box; background:rgba(255,255,255,0.08); border-radius:14px; padding:16px 10px;">
             <p style="color:#fff; font-size:1.05rem; font-weight:700; margin:0;">${r.plazo} cuotas</p>
             <p style="color:#C9B8D1; font-size:0.78rem; margin:4px 0 0;">de ${fmt(redondearPesos(r.cuota), 0, moneda)}</p>
           </div>`).join('')}
@@ -1955,9 +1951,9 @@ const generarComparador = () => {
   } else {
     contenidoHtml = `
       <p style="font-family:'IBM Plex Sans',sans-serif; font-size:0.72rem; letter-spacing:0.08em; text-transform:uppercase; color:#C9B8D1; margin:0 0 18px;">Elegí tu plazo</p>
-      <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
-        ${resultados.map((r, i) => `
-          <div style="${esImparYUltima(i, resultados.length)} background:rgba(255,255,255,0.08); border-radius:14px; padding:16px 10px;">
+      <div style="display:flex; flex-wrap:wrap; justify-content:center; gap:12px;">
+        ${resultados.map(r => `
+          <div style="width:calc(50% - 6px); box-sizing:border-box; background:rgba(255,255,255,0.08); border-radius:14px; padding:16px 10px;">
             <p style="color:#C9B8D1; font-size:0.68rem; text-transform:uppercase; letter-spacing:0.05em; margin:0;">Hasta</p>
             <p style="color:#fff; font-size:1.3rem; font-weight:700; margin:4px 0;">${fmt(redondearPesos(r.monto), 0, moneda)}</p>
             <p style="color:#C9B8D1; font-size:0.72rem; margin:0;">en ${r.plazo} cuotas de ${fmt(redondearPesos(valor), 0, moneda)}</p>
