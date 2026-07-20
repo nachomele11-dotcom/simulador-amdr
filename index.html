@@ -838,6 +838,12 @@
                   <input id="lineaIVA" type="number" class="input-field" placeholder="0" min="0" max="100" step="0.01" value="0">
                   <p class="input-help">Dejar en 0 para replicar el modelo actual de Contaduría.</p>
                 </div>
+                <div>
+                  <label class="field-label">Tramos de TNA por plazo (opcional)</label>
+                  <p class="input-help mb-2">Si cargás tramos acá, la TNA se elige sola según el plazo del préstamo en meses (ej: de 0 a 24 meses, 55%; de 25 a 36, 60%). Si no cargás ninguno, se sigue usando el campo "TNA %" de arriba como hasta ahora.</p>
+                  <div id="tramosPrestamo" class="space-y-2"></div>
+                  <button id="btnAgregarTramoPrestamo" type="button" class="btn btn-ghost btn-sm mt-2">+ Agregar tramo</button>
+                </div>
                 </div>
 
                 <div id="camposCheque" class="space-y-4 hidden">
@@ -1012,7 +1018,7 @@ const db = firebase.firestore();
 // un admin marca una versión nueva como la única válida.
 // IMPORTANTE: subir este número cada vez que se entregue un archivo nuevo.
 // ============================================================
-const APP_VERSION = 26;
+const APP_VERSION = 27;
 let versionBloqueada = false;
 
 const verificarVersion = async () => {
@@ -1255,6 +1261,45 @@ const quitarTramo = (i) => {
 };
 window.quitarTramo = quitarTramo;
 
+// ===== Tramos de TNA por plazo (meses) para líneas de préstamo — opcional =====
+let tramosPrestamoActuales = [];
+
+const renderTramosPrestamo = () => {
+  const cont = document.getElementById('tramosPrestamo');
+  cont.innerHTML = tramosPrestamoActuales.map((t, i) => `
+    <div class="grid grid-cols-4 gap-2 items-end">
+      <div>
+        <label class="field-label" style="font-size:0.68rem;">Desde (meses)</label>
+        <input type="number" class="input-field tramoP-desde" data-i="${i}" value="${t.desde}" min="0" step="1">
+      </div>
+      <div>
+        <label class="field-label" style="font-size:0.68rem;">Hasta (meses)</label>
+        <input type="number" class="input-field tramoP-hasta" data-i="${i}" value="${t.hasta}" min="0" step="1">
+      </div>
+      <div>
+        <label class="field-label" style="font-size:0.68rem;">TNA %</label>
+        <input type="number" class="input-field tramoP-tna" data-i="${i}" value="${t.tna}" min="0" step="0.1">
+      </div>
+      <button type="button" class="btn btn-danger btn-sm" onclick="quitarTramoPrestamo(${i})">Quitar</button>
+    </div>
+  `).join('');
+  cont.querySelectorAll('.tramoP-desde').forEach(el => el.addEventListener('input', e => tramosPrestamoActuales[+e.target.dataset.i].desde = parseFloat(e.target.value) || 0));
+  cont.querySelectorAll('.tramoP-hasta').forEach(el => el.addEventListener('input', e => tramosPrestamoActuales[+e.target.dataset.i].hasta = parseFloat(e.target.value) || 0));
+  cont.querySelectorAll('.tramoP-tna').forEach(el => el.addEventListener('input', e => tramosPrestamoActuales[+e.target.dataset.i].tna = parseFloat(e.target.value) || 0));
+};
+
+const agregarTramoPrestamo = () => {
+  const ultimo = tramosPrestamoActuales[tramosPrestamoActuales.length - 1];
+  tramosPrestamoActuales.push({ desde: ultimo ? ultimo.hasta + 1 : 0, hasta: ultimo ? ultimo.hasta + 12 : 24, tna: 0 });
+  renderTramosPrestamo();
+};
+
+const quitarTramoPrestamo = (i) => {
+  tramosPrestamoActuales.splice(i, 1);
+  renderTramosPrestamo();
+};
+window.quitarTramoPrestamo = quitarTramoPrestamo;
+
 const aplicarTipoLineaForm = () => {
   const tipo = document.getElementById('lineaTipo').value;
   document.getElementById('camposPrestamo').classList.toggle('hidden', tipo === 'cheque');
@@ -1286,6 +1331,8 @@ const editarLinea = (id) => {
     document.getElementById('lineaSegVidaPorc').value = linea.segVidaPorc || 0;
     document.getElementById('lineaIVA').value = linea.iva;
     document.getElementById('seguroVidaPorcentaje').classList.toggle('hidden', linea.segVida === 'N');
+    tramosPrestamoActuales = JSON.parse(JSON.stringify(linea.tramosTNA || []));
+    renderTramosPrestamo();
   }
   aplicarTipoLineaForm();
   document.getElementById('tituloFormLinea').textContent = 'Editar línea';
@@ -1305,6 +1352,8 @@ const cancelarEdicionLinea = () => {
   document.getElementById('seguroVidaPorcentaje').classList.add('hidden');
   tramosActuales = [];
   renderTramos();
+  tramosPrestamoActuales = [];
+  renderTramosPrestamo();
   aplicarTipoLineaForm();
   document.getElementById('tituloFormLinea').textContent = 'Nueva línea';
   document.getElementById('btnCancelarLinea').classList.add('hidden');
@@ -1337,6 +1386,10 @@ const guardarLinea = async () => {
   } else {
     const tna = parseFloat(document.getElementById('lineaTNA').value);
     if (!tna || tna <= 0) return showToast('Ingresá una TNA válida', 'error');
+    for (const t of tramosPrestamoActuales) {
+      if (t.hasta < t.desde) return showToast('En cada tramo de TNA por plazo, "Hasta" debe ser mayor o igual a "Desde"', 'error');
+      if (!t.tna || t.tna <= 0) return showToast('Cada tramo de TNA por plazo necesita una TNA mayor a 0', 'error');
+    }
     linea = {
       tipo: 'prestamo',
       nombre,
@@ -1348,6 +1401,7 @@ const guardarLinea = async () => {
       segVida: document.getElementById('lineaSegVida').value,
       segVidaPorc: parseFloat(document.getElementById('lineaSegVidaPorc').value) || 0,
       iva: parseFloat(document.getElementById('lineaIVA').value) || 0,
+      tramosTNA: tramosPrestamoActuales.map(t => ({ desde: t.desde, hasta: t.hasta, tna: t.tna })).sort((a, b) => a.desde - b.desde),
       actualizadoPor: currentUser.email,
       actualizadoEn: new Date().toISOString()
     };
@@ -1431,6 +1485,16 @@ const aplicarModoSimulador = (tipo) => {
   }
 };
 
+// Busca en los tramos de la línea (por meses de plazo) la TNA que corresponde
+// al "Plazo (meses)" actual del formulario, y la aplica al campo TNA.
+const aplicarTNAPorPlazoLinea = () => {
+  const linea = lineaSeleccionadaActual;
+  if (!linea || linea.tipo === 'cheque' || !linea.tramosTNA || linea.tramosTNA.length === 0) return;
+  const plazo = parseInt(document.getElementById('plazo').value) || 0;
+  const tramo = buscarTramoTNA(linea.tramosTNA, plazo);
+  document.getElementById('tna').value = tramo ? tramo.tna : linea.tna; // si no cae en ningún tramo, usa la TNA de respaldo
+};
+
 const aplicarLinea = () => {
   const id = document.getElementById('lineaSeleccionada').value;
   const lineas = cargarLineas();
@@ -1453,7 +1517,11 @@ const aplicarLinea = () => {
       partes.push(`Tramos TNA: ${(linea.tramos || []).map(t => `${t.desde}-${t.hasta} días: ${fmtNum(t.tna)}%`).join(' · ') || 'sin configurar'}`);
       document.getElementById('infoDescuentos').innerHTML = partes.join('<br>');
     } else {
-      document.getElementById('tna').value = linea.tna;
+      if (linea.tramosTNA && linea.tramosTNA.length > 0) {
+        aplicarTNAPorPlazoLinea();
+      } else {
+        document.getElementById('tna').value = linea.tna;
+      }
       document.getElementById('tna').disabled = true;
       const partes = [];
       if (linea.sellado > 0) partes.push(`Sellado prov.: ${fmtNum(linea.sellado)}%`);
@@ -1461,6 +1529,7 @@ const aplicarLinea = () => {
       if (linea.selladoSolic > 0) partes.push(`Sellado solic.: ${fmt(linea.selladoSolic)}`);
       if (linea.segVida === 'S') partes.push(`Seguro de vida: ${fmtNum(linea.segVidaPorc, 3)}%/período (sobre saldo)`);
       if (linea.iva > 0) partes.push(`IVA: ${fmtNum(linea.iva)}%`);
+      if (linea.tramosTNA && linea.tramosTNA.length > 0) partes.push(`Tramos TNA por plazo: ${linea.tramosTNA.map(t => `${t.desde}-${t.hasta} meses: ${fmtNum(t.tna)}%`).join(' · ')}`);
       document.getElementById('infoDescuentos').innerHTML = partes.length ? partes.join('<br>') : 'Sin descuentos configurados';
     }
   } else {
@@ -1483,26 +1552,26 @@ const aplicarLinea = () => {
 // ============================================================
 // MOTOR DE CÁLCULO FINANCIERO
 // Validado línea por línea contra la planilla de Contaduría
-// (sistema francés, TNA con IVA incluido, TEM = TNA/12,
-//  TEA por interés efectivo, CFT como tasa NOMINAL anual = r*12/periodo)
+// (sistema francés, TNA con IVA incluido, criterio de la plataforma donde se
+//  liquidan los préstamos: interés simple sobre meses de 30 días / año de 365
+//  días — validado contra un caso real: TNA 57% mensual -> TEP 4,6849%,
+//  cuota $1.128,16 sobre capital $10.179,24, CFT 81,02%)
 // ============================================================
 
-// Tasa efectiva del período (proporcional a la TNA)
-// Tasa efectiva del período: se compone la tasa mensual proporcional (TNA/12) a lo
-// largo de los meses del período — no se multiplica en forma simple. Para periodicidad
-// mensual (mesesPeriodo=1) da exactamente lo mismo que antes (TNA/12), pero para
-// bimestral/trimestral/semestral/anual esto es lo que corresponde financieramente
-// (validado contra la planilla de Contaduría: TNA 75% semestral -> TEP 43,871%).
-const calcularTEP = (tna, mesesPeriodo) => {
-  const temMensual = tna / 100 / 12;
-  return Math.pow(1 + temMensual, mesesPeriodo) - 1;
-};
+// Tasa efectiva del período: interés SIMPLE (no compuesto), asumiendo meses
+// de 30 días sobre un año de 365 días — es el criterio que usa la plataforma
+// de liquidación real, no el que usa la planilla de Contaduría (que componía
+// la tasa mensual). Para un préstamo mensual da un poquito menos que TNA/12,
+// porque 30 días no es exactamente lo mismo que 365/12 días.
+const calcularTEP = (tna, mesesPeriodo) => (tna / 100) * (30 * mesesPeriodo / 365);
 
-// TEA a partir de la TEP (capitalización compuesta)
-const calcularTEA = (tep, mesesPeriodo) => (Math.pow(1 + tep, 12 / mesesPeriodo) - 1) * 100;
+// TEA a partir de la TEP, componiendo con la misma convención de 30/365 días
+// (365/(30*mesesPeriodo) períodos "de 30 días" entran en un año)
+const calcularTEA = (tep, mesesPeriodo) => (Math.pow(1 + tep, 365 / (30 * mesesPeriodo)) - 1) * 100;
 
-// TEM a partir de la TEA (para mostrar en pantalla; para periodicidad mensual
-// esto matemáticamente equivale siempre a TNA/12, igual que en la planilla)
+// TEM a partir de la TEA (para mostrar en pantalla; es una referencia
+// comparable entre periodicidades — asume 12 meses reales por año, por eso
+// no coincide centavo a centavo con la TEP de un préstamo mensual)
 const calcularTEM = (tea) => (Math.pow(1 + tea / 100, 1 / 12) - 1) * 100;
 
 // Cuota sistema francés
@@ -1931,8 +2000,10 @@ const calcularCapitalDesdeNeto = (montoNeto, linea, tep, n, fechaInicio, mesesPe
 
 // CFT: se resuelve la tasa periódica implícita (TIR) que iguala el monto neto
 // recibido con el flujo real de cuotas (respeta períodos de gracia con pago 0),
-// y se anualiza en forma NOMINAL (tasa*periodos por año), igual que la función
-// RATE()*12 de la planilla de Contaduría — NO como tasa efectiva compuesta.
+// y se anualiza en forma EFECTIVA componiendo 365/(30*mesesPeriodo) veces por
+// año — es el criterio de la plataforma de liquidación real (validado contra
+// un caso real: TIR mensual 4,9985% -> CFT 81,02%). Ya no es la anualización
+// nominal (tasa*12/periodo) que usaba la planilla de Contaduría.
 const calcularCFT = (montoNeto, flujosCuotas, mesesPeriodo) => {
   const flujos = [-montoNeto, ...flujosCuotas];
   let tasa = 0.05;
@@ -1962,7 +2033,7 @@ const calcularCFT = (montoNeto, flujosCuotas, mesesPeriodo) => {
     tasa = (lo + hi) / 2;
   }
 
-  return tasa * (12 / mesesPeriodo) * 100;
+  return (Math.pow(1 + tasa, 365 / (30 * mesesPeriodo)) - 1) * 100;
 };
 
 // Capital calculado en tiempo real (antes de calcular la simulación completa)
@@ -2921,6 +2992,7 @@ document.getElementById('lineaSegVida').addEventListener('change', (e) => {
 });
 document.getElementById('lineaTipo').addEventListener('change', aplicarTipoLineaForm);
 document.getElementById('btnAgregarTramo').addEventListener('click', agregarTramo);
+document.getElementById('btnAgregarTramoPrestamo').addEventListener('click', agregarTramoPrestamo);
 
 document.getElementById('btnGuardarLinea').addEventListener('click', guardarLinea);
 document.getElementById('btnCancelarLinea').addEventListener('click', cancelarEdicionLinea);
@@ -2937,6 +3009,7 @@ document.getElementById('periodicidad').addEventListener('change', (e) => {
 });
 document.getElementById('plazo').addEventListener('input', () => {
   if (document.getElementById('periodicidad').value === 'modificable') sincronizarUltimaCuotaModificable();
+  aplicarTNAPorPlazoLinea();
 });
 document.getElementById('fecha').addEventListener('change', () => {
   if (document.getElementById('periodicidad').value === 'modificable') renderCuotasModificables();
