@@ -429,6 +429,9 @@
                     <input id="tna" type="number" class="input-field" placeholder="0" min="0" max="1000" step="0.1">
                   </div>
                 </div>
+                <p id="avisoTNAPlazo" class="hidden rounded-lg p-2 text-xs" style="background:var(--red-100); color:var(--red-700); border:1px solid #EBC9C9;">
+                  ⚠ Esta línea tiene TNA por plazo, pero el plazo cargado no cae en ningún tramo configurado.
+                </p>
 
                 <div>
                   <label class="field-label" id="labelMonto">Monto neto solicitado</label>
@@ -806,8 +809,21 @@
 
                 <div id="camposPrestamo" class="space-y-4">
                 <div>
+                  <label class="field-label">TNA</label>
+                  <select id="lineaModoTNA" class="input-field">
+                    <option value="fija">TNA fija</option>
+                    <option value="plazo">TNA por plazo (meses)</option>
+                  </select>
+                </div>
+                <div id="lineaTNAFijaWrap">
                   <label class="field-label">TNA % *</label>
                   <input id="lineaTNA" type="number" class="input-field" placeholder="0" min="0" max="1000" step="0.1">
+                </div>
+                <div id="lineaTNAPlazoWrap" class="hidden">
+                  <label class="field-label">Tramos de TNA por plazo (meses) *</label>
+                  <p class="input-help mb-2">La TNA se elige sola según el plazo del préstamo (ej: de 0 a 24 meses, 55%; de 25 a 36, 60%). El plazo tiene que caer dentro de algún tramo.</p>
+                  <div id="tramosPrestamo" class="space-y-2"></div>
+                  <button id="btnAgregarTramoPrestamo" type="button" class="btn btn-ghost btn-sm mt-2">+ Agregar tramo</button>
                 </div>
                 <div>
                   <label class="field-label">Sellado provincial %</label>
@@ -837,12 +853,6 @@
                   <label class="field-label">IVA sobre gastos %</label>
                   <input id="lineaIVA" type="number" class="input-field" placeholder="0" min="0" max="100" step="0.01" value="0">
                   <p class="input-help">Dejar en 0 para replicar el modelo actual de Contaduría.</p>
-                </div>
-                <div>
-                  <label class="field-label">Tramos de TNA por plazo (opcional)</label>
-                  <p class="input-help mb-2">Si cargás tramos acá, la TNA se elige sola según el plazo del préstamo en meses (ej: de 0 a 24 meses, 55%; de 25 a 36, 60%). Si no cargás ninguno, se sigue usando el campo "TNA %" de arriba como hasta ahora.</p>
-                  <div id="tramosPrestamo" class="space-y-2"></div>
-                  <button id="btnAgregarTramoPrestamo" type="button" class="btn btn-ghost btn-sm mt-2">+ Agregar tramo</button>
                 </div>
                 </div>
 
@@ -1018,7 +1028,7 @@ const db = firebase.firestore();
 // un admin marca una versión nueva como la única válida.
 // IMPORTANTE: subir este número cada vez que se entregue un archivo nuevo.
 // ============================================================
-const APP_VERSION = 27;
+const APP_VERSION = 28;
 let versionBloqueada = false;
 
 const verificarVersion = async () => {
@@ -1192,7 +1202,9 @@ const mostrarLineas = () => {
             ${l.selladoSolic > 0 ? `<p><span class="font-semibold">Sellado sol:</span> ${fmt(l.selladoSolic)}</p>` : ''}
             <p class="col-span-2"><span class="font-semibold">Tramos TNA:</span> ${(l.tramos || []).map(t => `${t.desde}-${t.hasta}d: ${fmtNum(t.tna)}%`).join(' · ') || 'sin configurar'}</p>
     ` : `
-            <p><span class="font-semibold">TNA:</span> ${fmtNum(l.tna)}%</p>
+            ${(l.tramosTNA && l.tramosTNA.length > 0)
+              ? `<p class="col-span-2"><span class="font-semibold">TNA por plazo:</span> ${l.tramosTNA.map(t => `${t.desde}-${t.hasta}m: ${fmtNum(t.tna)}%`).join(' · ')}</p>`
+              : `<p><span class="font-semibold">TNA:</span> ${fmtNum(l.tna)}%</p>`}
             <p><span class="font-semibold">Sellado:</span> ${fmtNum(l.sellado)}%</p>
             <p><span class="font-semibold">Gasto otorg:</span> ${fmtNum(l.gastoOtorg)}%</p>
             <p><span class="font-semibold">IVA:</span> ${fmtNum(l.iva)}%</p>
@@ -1323,7 +1335,11 @@ const editarLinea = (id) => {
     tramosActuales = JSON.parse(JSON.stringify(linea.tramos || []));
     renderTramos();
   } else {
-    document.getElementById('lineaTNA').value = linea.tna;
+    const usaTramos = linea.tramosTNA && linea.tramosTNA.length > 0;
+    document.getElementById('lineaModoTNA').value = usaTramos ? 'plazo' : 'fija';
+    document.getElementById('lineaTNAFijaWrap').classList.toggle('hidden', usaTramos);
+    document.getElementById('lineaTNAPlazoWrap').classList.toggle('hidden', !usaTramos);
+    document.getElementById('lineaTNA').value = linea.tna || '';
     document.getElementById('lineaSellado').value = linea.sellado;
     document.getElementById('lineaGastoOtorg').value = linea.gastoOtorg;
     document.getElementById('lineaSelladoSolic').value = linea.selladoSolic;
@@ -1350,6 +1366,9 @@ const cancelarEdicionLinea = () => {
   document.getElementById('lineaSegVida').value = 'N';
   document.getElementById('lineaIVA').value = 0;
   document.getElementById('seguroVidaPorcentaje').classList.add('hidden');
+  document.getElementById('lineaModoTNA').value = 'fija';
+  document.getElementById('lineaTNAFijaWrap').classList.remove('hidden');
+  document.getElementById('lineaTNAPlazoWrap').classList.add('hidden');
   tramosActuales = [];
   renderTramos();
   tramosPrestamoActuales = [];
@@ -1384,11 +1403,19 @@ const guardarLinea = async () => {
       actualizadoEn: new Date().toISOString()
     };
   } else {
-    const tna = parseFloat(document.getElementById('lineaTNA').value);
-    if (!tna || tna <= 0) return showToast('Ingresá una TNA válida', 'error');
-    for (const t of tramosPrestamoActuales) {
-      if (t.hasta < t.desde) return showToast('En cada tramo de TNA por plazo, "Hasta" debe ser mayor o igual a "Desde"', 'error');
-      if (!t.tna || t.tna <= 0) return showToast('Cada tramo de TNA por plazo necesita una TNA mayor a 0', 'error');
+    const modoTNA = document.getElementById('lineaModoTNA').value;
+    let tna = 0;
+    let tramosTNA = [];
+    if (modoTNA === 'plazo') {
+      if (tramosPrestamoActuales.length === 0) return showToast('Agregá al menos un tramo de TNA por plazo', 'error');
+      for (const t of tramosPrestamoActuales) {
+        if (t.hasta < t.desde) return showToast('En cada tramo de TNA por plazo, "Hasta" debe ser mayor o igual a "Desde"', 'error');
+        if (!t.tna || t.tna <= 0) return showToast('Cada tramo de TNA por plazo necesita una TNA mayor a 0', 'error');
+      }
+      tramosTNA = tramosPrestamoActuales.map(t => ({ desde: t.desde, hasta: t.hasta, tna: t.tna })).sort((a, b) => a.desde - b.desde);
+    } else {
+      tna = parseFloat(document.getElementById('lineaTNA').value);
+      if (!tna || tna <= 0) return showToast('Ingresá una TNA válida', 'error');
     }
     linea = {
       tipo: 'prestamo',
@@ -1401,7 +1428,7 @@ const guardarLinea = async () => {
       segVida: document.getElementById('lineaSegVida').value,
       segVidaPorc: parseFloat(document.getElementById('lineaSegVidaPorc').value) || 0,
       iva: parseFloat(document.getElementById('lineaIVA').value) || 0,
-      tramosTNA: tramosPrestamoActuales.map(t => ({ desde: t.desde, hasta: t.hasta, tna: t.tna })).sort((a, b) => a.desde - b.desde),
+      tramosTNA,
       actualizadoPor: currentUser.email,
       actualizadoEn: new Date().toISOString()
     };
@@ -1492,7 +1519,13 @@ const aplicarTNAPorPlazoLinea = () => {
   if (!linea || linea.tipo === 'cheque' || !linea.tramosTNA || linea.tramosTNA.length === 0) return;
   const plazo = parseInt(document.getElementById('plazo').value) || 0;
   const tramo = buscarTramoTNA(linea.tramosTNA, plazo);
-  document.getElementById('tna').value = tramo ? tramo.tna : linea.tna; // si no cae en ningún tramo, usa la TNA de respaldo
+  if (tramo) {
+    document.getElementById('tna').value = tramo.tna;
+    document.getElementById('avisoTNAPlazo').classList.add('hidden');
+  } else {
+    document.getElementById('tna').value = '';
+    document.getElementById('avisoTNAPlazo').classList.remove('hidden');
+  }
 };
 
 const aplicarLinea = () => {
@@ -1510,6 +1543,7 @@ const aplicarLinea = () => {
     document.getElementById('moneda').disabled = true;
 
     if (tipo === 'cheque') {
+      document.getElementById('avisoTNAPlazo').classList.add('hidden');
       const partes = [];
       if (linea.selladoPct > 0) partes.push(`Sellado provincial: ${fmtNum(linea.selladoPct)}%`);
       partes.push(`Gasto administrativo: ${fmtNum(linea.gastoAdminPct)}% (sobre valor nominal)`);
@@ -1521,6 +1555,7 @@ const aplicarLinea = () => {
         aplicarTNAPorPlazoLinea();
       } else {
         document.getElementById('tna').value = linea.tna;
+        document.getElementById('avisoTNAPlazo').classList.add('hidden');
       }
       document.getElementById('tna').disabled = true;
       const partes = [];
@@ -1536,6 +1571,7 @@ const aplicarLinea = () => {
     document.getElementById('descuentosLinea').classList.add('hidden');
     document.getElementById('descuentosManual').classList.remove('hidden');
     document.getElementById('moneda').disabled = false;
+    document.getElementById('avisoTNAPlazo').classList.add('hidden');
     const tipoManual = document.getElementById('tipoManual').value;
     aplicarModoSimulador(tipoManual);
     if (tipoManual === 'cheque') {
@@ -2454,6 +2490,7 @@ const nuevaSimulacion = () => {
   ['cliente','monto','tna','plazo','gracia','cuit'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('gracia').value = 0;
   document.getElementById('resultadoBCRA').classList.add('hidden');
+  document.getElementById('avisoTNAPlazo').classList.add('hidden');
   document.getElementById('lineaSeleccionada').value = '';
   document.getElementById('fecha').valueAsDate = new Date();
   ['manualSellado','manualGastoOtorg','manualSelladoSolic','manualSegVidaPorc','manualIVA'].forEach(id => document.getElementById(id).value = 0);
@@ -2993,6 +3030,12 @@ document.getElementById('lineaSegVida').addEventListener('change', (e) => {
 document.getElementById('lineaTipo').addEventListener('change', aplicarTipoLineaForm);
 document.getElementById('btnAgregarTramo').addEventListener('click', agregarTramo);
 document.getElementById('btnAgregarTramoPrestamo').addEventListener('click', agregarTramoPrestamo);
+document.getElementById('lineaModoTNA').addEventListener('change', (e) => {
+  const esPlazo = e.target.value === 'plazo';
+  document.getElementById('lineaTNAFijaWrap').classList.toggle('hidden', esPlazo);
+  document.getElementById('lineaTNAPlazoWrap').classList.toggle('hidden', !esPlazo);
+  if (esPlazo && tramosPrestamoActuales.length === 0) agregarTramoPrestamo();
+});
 
 document.getElementById('btnGuardarLinea').addEventListener('click', guardarLinea);
 document.getElementById('btnCancelarLinea').addEventListener('click', cancelarEdicionLinea);
