@@ -1075,7 +1075,7 @@ const db = firebase.firestore();
 // un admin marca una versión nueva como la única válida.
 // IMPORTANTE: subir este número cada vez que se entregue un archivo nuevo.
 // ============================================================
-const APP_VERSION = 41;
+const APP_VERSION = 42;
 let versionBloqueada = false;
 
 const verificarVersion = async () => {
@@ -2492,8 +2492,8 @@ const calcularCheque = () => {
   const cantTexto = detalle.length === 1 ? '1 cheque' : `${detalle.length} cheques`;
   document.getElementById('resCuota').textContent = fmt(montoNeto, 2, moneda);
   document.getElementById('resNCuotas').textContent = cantTexto;
-  document.getElementById('resTEM').textContent = detalle.length === 1 ? `${detalle[0].dias} días` : `hasta ${diasMax} días`;
-  document.getElementById('resTEA').textContent = detalle.length === 1 ? fmtNum(detalle[0].tna) + '%' : 'varias';
+  document.getElementById('resTEM').textContent = detalle.length === 1 ? `${detalle[0].dias} días` : `${diasPromedioPonderado.toFixed(1)} días prom.`;
+  document.getElementById('resTEA').textContent = detalle.length === 1 ? fmtNum(detalle[0].tna) + '%' : fmtNum(tasaPromedioPonderada) + '% prom.';
   document.getElementById('resCFT').textContent = fmtNum(cft) + '%';
   document.getElementById('resTotalInt').textContent = fmt(sumaDescuento, 2, moneda);
   document.getElementById('resTotalAbono').textContent = fmt(sumaValorNominal, 2, moneda);
