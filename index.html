@@ -795,6 +795,18 @@
                   <input id="lineaNombre" type="text" class="input-field" placeholder="Ej: Línea Personal">
                 </div>
                 <div>
+                  <label class="field-label">Visibilidad</label>
+                  <select id="lineaVisibilidad" class="input-field">
+                    <option value="publica">Pública (la ven todos)</option>
+                    <option value="privada">Privada (solo quienes elijas)</option>
+                  </select>
+                </div>
+                <div id="lineaUsuariosPermitidosWrap" class="hidden">
+                  <label class="field-label">¿Quién más puede verla, además de vos?</label>
+                  <div id="listaUsuariosPermitidos" class="space-y-1 rounded-lg p-2" style="border:1px solid var(--line); max-height:160px; overflow-y:auto;"></div>
+                  <p class="input-help">Nadie fuera de esta lista (ni siquiera otros admins) va a poder verla, ni en Líneas, ni en el Simulador, ni en el Comparador.</p>
+                </div>
+                <div>
                   <label class="field-label">Moneda *</label>
                   <select id="lineaMoneda" class="input-field">
                     <option value="ARS">ARS</option>
@@ -1075,7 +1087,7 @@ const db = firebase.firestore();
 // un admin marca una versión nueva como la única válida.
 // IMPORTANTE: subir este número cada vez que se entregue un archivo nuevo.
 // ============================================================
-const APP_VERSION = 44;
+const APP_VERSION = 45;
 let versionBloqueada = false;
 
 const verificarVersion = async () => {
@@ -1221,7 +1233,15 @@ document.getElementById('btnMarcarVersion').addEventListener('click', marcarVers
 // ============================================================
 // GESTIÓN DE LÍNEAS (Firestore: colección "lineas")
 // ============================================================
-const cargarLineas = () => lineasCache;
+// Filtra las líneas privadas: solo las ve quien las creó o quien esté en la
+// lista de usuarios permitidos. Como esta función alimenta tanto la pestaña
+// de Líneas de crédito como el Simulador y el Comparador de cuotas, filtrando
+// acá el efecto se aplica en los 3 lugares a la vez.
+const cargarLineas = () => lineasCache.filter(l => {
+  if (l.visibilidad !== 'privada') return true;
+  const permitidos = l.usuariosPermitidos || [];
+  return permitidos.includes(currentUser.uid);
+});
 
 
 const cargarDropdownLineas = () => {
@@ -1229,7 +1249,7 @@ const cargarDropdownLineas = () => {
   const select = document.getElementById('lineaSeleccionada');
   const selectedValue = select.value;
   select.innerHTML = '<option value="">— Sin línea predeterminada —</option>' +
-    lineas.map(l => `<option value="${l.id}">${l.nombre}${l.tipo === 'cheque' ? ' (cheque)' : ''}</option>`).join('');
+    lineas.map(l => `<option value="${l.id}">${l.visibilidad === 'privada' ? '🔒 ' : ''}${l.nombre}${l.tipo === 'cheque' ? ' (cheque)' : ''}</option>`).join('');
   if (selectedValue) select.value = selectedValue;
 };
 
@@ -1263,7 +1283,7 @@ const mostrarLineas = () => {
       <div class="flex items-start justify-between gap-3 mb-3">
         <div class="flex-1">
           <div class="flex items-center gap-2 mb-1">
-            <h3 class="font-display text-lg" style="font-weight:600; color:var(--purple-700);">${l.nombre}</h3>
+            <h3 class="font-display text-lg" style="font-weight:600; color:var(--purple-700);">${l.visibilidad === 'privada' ? '🔒 ' : ''}${l.nombre}</h3>
             <span class="text-[0.62rem] px-2 py-0.5 rounded-full font-semibold" style="background:${esCheque ? 'var(--amber-100)' : 'var(--purple-100)'}; color:${esCheque ? 'var(--amber-700)' : 'var(--purple-700)'};">${esCheque ? 'Cheque' : 'Préstamo'}</span>
           </div>
           <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-xs" style="color:var(--ink-soft);">
@@ -1365,6 +1385,33 @@ const aplicarTipoLineaForm = () => {
   document.getElementById('camposCheque').classList.toggle('hidden', tipo !== 'cheque');
 };
 
+// ===== Visibilidad de líneas (pública/privada) =====
+let todosLosUsuariosCache = null; // se carga una sola vez, bajo demanda (solo hace falta si se elige "Privada")
+let usuariosPermitidosActuales = [];
+
+const cargarTodosLosUsuarios = async () => {
+  if (todosLosUsuariosCache) return todosLosUsuariosCache;
+  const snap = await db.collection('usuarios').get();
+  todosLosUsuariosCache = snap.docs.map(d => ({ uid: d.id, ...d.data() }));
+  return todosLosUsuariosCache;
+};
+
+const renderListaUsuariosPermitidos = async () => {
+  const cont = document.getElementById('listaUsuariosPermitidos');
+  cont.innerHTML = '<p class="text-xs" style="color:var(--ink-faint);">Cargando usuarios...</p>';
+  const usuarios = await cargarTodosLosUsuarios();
+  cont.innerHTML = usuarios.filter(u => u.uid !== currentUser.uid).map(u => `
+    <label class="flex items-center gap-2 text-sm" style="padding:2px 4px;">
+      <input type="checkbox" class="chk-usuario-permitido" value="${u.uid}" ${usuariosPermitidosActuales.includes(u.uid) ? 'checked' : ''}>
+      ${u.nombre || u.email} <span style="color:var(--ink-faint); font-size:0.72rem;">(${u.rol || 'vendedor'})</span>
+    </label>
+  `).join('') || '<p class="text-xs" style="color:var(--ink-faint);">No hay otros usuarios cargados.</p>';
+  cont.querySelectorAll('.chk-usuario-permitido').forEach(chk => chk.addEventListener('change', (e) => {
+    if (e.target.checked) usuariosPermitidosActuales.push(e.target.value);
+    else usuariosPermitidosActuales = usuariosPermitidosActuales.filter(uid => uid !== e.target.value);
+  }));
+};
+
 const editarLinea = (id) => {
   if (!esAdmin()) return;
   const lineas = cargarLineas();
@@ -1375,6 +1422,11 @@ const editarLinea = (id) => {
   document.getElementById('lineaTipo').value = linea.tipo || 'prestamo';
   document.getElementById('lineaNombre').value = linea.nombre;
   document.getElementById('lineaMoneda').value = linea.moneda || 'ARS';
+  const esPrivada = linea.visibilidad === 'privada';
+  document.getElementById('lineaVisibilidad').value = esPrivada ? 'privada' : 'publica';
+  document.getElementById('lineaUsuariosPermitidosWrap').classList.toggle('hidden', !esPrivada);
+  usuariosPermitidosActuales = (linea.usuariosPermitidos || []).filter(uid => uid !== currentUser.uid);
+  if (esPrivada) renderListaUsuariosPermitidos();
   if ((linea.tipo || 'prestamo') === 'cheque') {
     document.getElementById('lineaSelladoCheque').value = linea.selladoPct || 0;
     document.getElementById('lineaGastoAdmin').value = linea.gastoAdminPct || 0;
@@ -1420,6 +1472,9 @@ const cancelarEdicionLinea = () => {
   renderTramos();
   tramosPrestamoActuales = [];
   renderTramosPrestamo();
+  document.getElementById('lineaVisibilidad').value = 'publica';
+  document.getElementById('lineaUsuariosPermitidosWrap').classList.add('hidden');
+  usuariosPermitidosActuales = [];
   aplicarTipoLineaForm();
   document.getElementById('tituloFormLinea').textContent = 'Nueva línea';
   document.getElementById('btnCancelarLinea').classList.add('hidden');
@@ -1480,6 +1535,12 @@ const guardarLinea = async () => {
       actualizadoEn: new Date().toISOString()
     };
   }
+
+  const visibilidad = document.getElementById('lineaVisibilidad').value;
+  linea.visibilidad = visibilidad;
+  linea.usuariosPermitidos = visibilidad === 'privada'
+    ? [...new Set([currentUser.uid, ...usuariosPermitidosActuales])]
+    : [];
 
   try {
     if (editandoLinea) {
@@ -1858,7 +1919,7 @@ window.quitarPlazoComparador = quitarPlazoComparador;
 const poblarLineasComparador = () => {
   const sel = document.getElementById('compLinea');
   const lineas = cargarLineas().filter(l => (l.tipo || 'prestamo') !== 'cheque');
-  sel.innerHTML = lineas.map(l => `<option value="${l.id}">${l.nombre}</option>`).join('') || '<option value="">No hay líneas de préstamo cargadas</option>';
+  sel.innerHTML = lineas.map(l => `<option value="${l.id}">${l.visibilidad === 'privada' ? '🔒 ' : ''}${l.nombre}</option>`).join('') || '<option value="">No hay líneas de préstamo cargadas</option>';
 };
 
 // Inversa de calcularCuotaFrances: dado el capital de la cuota, ¿qué capital admite?
@@ -3252,6 +3313,11 @@ document.getElementById('lineaModoTNA').addEventListener('change', (e) => {
   document.getElementById('lineaTNAFijaWrap').classList.toggle('hidden', esPlazo);
   document.getElementById('lineaTNAPlazoWrap').classList.toggle('hidden', !esPlazo);
   if (esPlazo && tramosPrestamoActuales.length === 0) agregarTramoPrestamo();
+});
+document.getElementById('lineaVisibilidad').addEventListener('change', (e) => {
+  const esPrivada = e.target.value === 'privada';
+  document.getElementById('lineaUsuariosPermitidosWrap').classList.toggle('hidden', !esPrivada);
+  if (esPrivada) renderListaUsuariosPermitidos();
 });
 
 document.getElementById('btnGuardarLinea').addEventListener('click', guardarLinea);
