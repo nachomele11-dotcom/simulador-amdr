@@ -1075,7 +1075,7 @@ const db = firebase.firestore();
 // un admin marca una versión nueva como la única válida.
 // IMPORTANTE: subir este número cada vez que se entregue un archivo nuevo.
 // ============================================================
-const APP_VERSION = 43;
+const APP_VERSION = 44;
 let versionBloqueada = false;
 
 const verificarVersion = async () => {
@@ -2630,12 +2630,12 @@ const actualizarPropuestaWhatsapp = () => {
     document.getElementById('waSubtitulo').textContent = 'te quedan en mano ahora';
     if (s.cheques.length === 1) {
       waGracia.textContent = `Se cobra el ${new Date(s.cheques[0].fechaAcreditacion + 'T00:00:00').toLocaleDateString('es-AR')} · valor nominal ${fmt(redondearPesos(s.sumaValorNominal), 0, s.moneda)}`;
+      waGracia.classList.remove('hidden');
       document.getElementById('waCuotas').textContent = '';
     } else {
       document.getElementById('waCuotas').textContent = `Valor nominal total: ${fmt(redondearPesos(s.sumaValorNominal), 0, s.moneda)}`;
-      waGracia.textContent = s.cheques.map(c => `Cheque ${c.numero}: se cobra el ${new Date(c.fechaAcreditacion + 'T00:00:00').toLocaleDateString('es-AR')}`).join(' · ');
+      waGracia.classList.add('hidden');
     }
-    waGracia.classList.remove('hidden');
     return;
   }
 
