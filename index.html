@@ -716,17 +716,9 @@
                       <h3 class="font-display text-lg mb-3" style="font-weight:600; color:var(--purple-700);">Resumen del adelanto</h3>
                       <div class="grid grid-cols-2 gap-3 text-sm">
                         <p><span class="font-semibold">Cantidad de cheques:</span> <span id="propChCantidad"></span></p>
-                        <p><span class="font-semibold">Línea:</span> <span id="propChLinea"></span></p>
+                        <p class="text-right"><span class="font-semibold">Fecha de operación:</span> <span id="propChFechaOp"></span></p>
                         <p><span class="font-semibold">Valor nominal total:</span> <span id="propChValorTotal"></span></p>
-                        <p><span class="font-semibold">Fecha de operación:</span> <span id="propChFechaOp"></span></p>
-                        <p id="propChPromediosRow" class="hidden col-span-2 grid grid-cols-2 gap-3">
-                          <span><span class="font-semibold">Plazo prom. ponderado:</span> <span id="propChPlazoProm"></span></span>
-                          <span><span class="font-semibold">Tasa prom. ponderada:</span> <span id="propChTasaProm"></span></span>
-                        </p>
-                        <p><span class="font-semibold">Sellado provincial:</span> <span id="propChSellado"></span></p>
-                        <p><span class="font-semibold">Gasto administrativo:</span> <span id="propChGastoAdmin"></span></p>
-                        <p><span class="font-semibold">Sellado solicitud:</span> <span id="propChSelladoSolic"></span></p>
-                        <p><span class="font-semibold">Monto neto a adelantar:</span> <span id="propChNeto" class="text-lg" style="color:var(--purple-700);"></span></p>
+                        <p class="text-right"><span class="font-semibold">Monto neto a adelantar:</span> <span id="propChNeto" style="color:var(--purple-700);"></span></p>
                       </div>
                     </div>
                   </div>
@@ -1083,7 +1075,7 @@ const db = firebase.firestore();
 // un admin marca una versión nueva como la única válida.
 // IMPORTANTE: subir este número cada vez que se entregue un archivo nuevo.
 // ============================================================
-const APP_VERSION = 39;
+const APP_VERSION = 41;
 let versionBloqueada = false;
 
 const verificarVersion = async () => {
@@ -2483,9 +2475,13 @@ const calcularCheque = () => {
   const tasaPromedioPonderada = detalle.reduce((s, c) => s + c.tna * c.valorNominal, 0) / sumaValorNominal;
   const cft = (costoTotal / montoNeto) * (365 / diasPromedioPonderado) * 100;
 
+  const cuitActual = document.getElementById('cuit').value.trim();
+  const cuitActualLimpio = cuitActual.replace(/\D/g, '');
+  const clienteDisplay = (denominacionBCRAActual && cuitConsultadoBCRA === cuitActualLimpio) ? denominacionBCRAActual : cliente;
+
   simulacionActual = {
     id: Date.now(), fecha: new Date().toISOString(), tipo: 'cheque',
-    cliente, moneda, fechaOperacion, cheques: detalle,
+    cliente, clienteDisplay, cuit: cuitActual, moneda, fechaOperacion, cheques: detalle,
     sumaValorNominal, sumaDescuento, sumaSelladoProv, sumaGastoAdmin, selladoSolic,
     costoTotal, montoNeto, cft, diasMax, diasPromedioPonderado, tasaPromedioPonderada,
     linea: lineaSeleccionadaActual.nombre, lineaData: lineaSeleccionadaActual
@@ -2584,18 +2580,9 @@ const actualizarPropuesta = () => {
         <td>${fmt(redondearPesos(c.descuento), 0, s.moneda)}</td>
       </tr>`).join('');
 
-    document.getElementById('propChCantidad').textContent = s.cheques.length === 1 ? '1 cheque' : `${s.cheques.length} cheques`;
-    document.getElementById('propChLinea').textContent = s.linea;
+    document.getElementById('propChCantidad').textContent = s.cheques.length;
     document.getElementById('propChValorTotal').textContent = fmt(redondearPesos(s.sumaValorNominal), 0, s.moneda);
     document.getElementById('propChFechaOp').textContent = new Date(s.fechaOperacion + 'T00:00:00').toLocaleDateString('es-AR');
-    document.getElementById('propChPromediosRow').classList.toggle('hidden', s.cheques.length <= 1);
-    if (s.cheques.length > 1) {
-      document.getElementById('propChPlazoProm').textContent = `${s.diasPromedioPonderado.toFixed(1)} días`;
-      document.getElementById('propChTasaProm').textContent = fmtNum(s.tasaPromedioPonderada) + '%';
-    }
-    document.getElementById('propChSellado').textContent = fmt(redondearPesos(s.sumaSelladoProv), 0, s.moneda);
-    document.getElementById('propChGastoAdmin').textContent = fmt(redondearPesos(s.sumaGastoAdmin), 0, s.moneda);
-    document.getElementById('propChSelladoSolic').textContent = fmt(redondearPesos(s.selladoSolic), 0, s.moneda);
     document.getElementById('propChNeto').textContent = fmt(redondearPesos(s.montoNeto), 0, s.moneda);
     return;
   }
