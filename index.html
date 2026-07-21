@@ -1075,7 +1075,7 @@ const db = firebase.firestore();
 // un admin marca una versión nueva como la única válida.
 // IMPORTANTE: subir este número cada vez que se entregue un archivo nuevo.
 // ============================================================
-const APP_VERSION = 42;
+const APP_VERSION = 43;
 let versionBloqueada = false;
 
 const verificarVersion = async () => {
@@ -3043,7 +3043,7 @@ const generarPDFCronograma = async () => {
         <td style="${tdBase}">${fmt(c.descuento, 2, s.moneda)}</td>
       </tr>`).join('');
     resumenHtml = `
-      <div style="display:flex; gap:14px; margin:16px 0 20px;">
+      <div style="display:flex; gap:14px; margin:16px 0 16px;">
         <div style="flex:1; background:#F7F3F9; border-radius:10px; padding:12px 16px;">
           <p style="font-size:10px; text-transform:uppercase; color:#8C7C96; margin:0 0 4px;">Valor nominal total</p>
           <p style="font-size:17px; font-weight:600; margin:0; color:#33193E;">${fmt(s.sumaValorNominal, 2, s.moneda)}</p>
@@ -3056,6 +3056,18 @@ const generarPDFCronograma = async () => {
           <p style="font-size:10px; text-transform:uppercase; color:#8C7C96; margin:0 0 4px;">Monto neto a recibir</p>
           <p style="font-size:17px; font-weight:600; margin:0; color:#33193E;">${fmt(s.montoNeto, 2, s.moneda)}</p>
         </div>
+      </div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px 18px; font-size:12px; color:#241A2C; margin-bottom:18px;">
+        <p style="margin:0;"><span style="font-weight:600;">Cantidad de cheques:</span> ${s.cheques.length}</p>
+        <p style="margin:0;"><span style="font-weight:600;">Fecha de operación:</span> ${new Date(s.fechaOperacion + 'T00:00:00').toLocaleDateString('es-AR')}</p>
+        ${s.cheques.length > 1 ? `
+        <p style="margin:0;"><span style="font-weight:600;">Plazo prom. ponderado:</span> ${s.diasPromedioPonderado.toFixed(1)} días</p>
+        <p style="margin:0;"><span style="font-weight:600;">Tasa prom. ponderada:</span> ${fmtNum(s.tasaPromedioPonderada)}%</p>` : ''}
+        <p style="margin:0;"><span style="font-weight:600;">Descuento total (interés):</span> ${fmt(s.sumaDescuento, 2, s.moneda)}</p>
+        <p style="margin:0;"><span style="font-weight:600;">Sellado provincial total:</span> ${fmt(s.sumaSelladoProv, 2, s.moneda)}</p>
+        <p style="margin:0;"><span style="font-weight:600;">Gasto administrativo total:</span> ${fmt(s.sumaGastoAdmin, 2, s.moneda)}</p>
+        <p style="margin:0;"><span style="font-weight:600;">Sellado solicitud (una vez):</span> ${fmt(s.selladoSolic, 2, s.moneda)}</p>
+        <p style="margin:0;"><span style="font-weight:600;">CFT (nominal anual aprox.):</span> ${fmtNum(s.cft)}%</p>
       </div>`;
   } else {
     cabecerasHtml = ['N° cuota', 'Fecha', 'Saldo inicial', 'Capital', 'Interés', 'Cuota', 'Saldo final']
