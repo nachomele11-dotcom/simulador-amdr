@@ -680,28 +680,24 @@
                   </div>
                   <div class="mb-6">
                     <h3 class="font-display text-lg mb-3" style="font-weight:600; color:var(--purple-700);">Datos del cliente</h3>
-                    <p class="text-sm"><span class="font-semibold">Cliente:</span> <span id="propCliente">-</span></p>
+                    <p class="text-sm"><span class="font-semibold">Cliente:</span> <span id="propCliente">-</span><span id="propCuitInline" class="hidden"> · CUIT: <span id="propCuit"></span></span></p>
                   </div>
                   <div class="mb-6" id="propCondicionesBlock">
                     <h3 class="font-display text-lg mb-3" style="font-weight:600; color:var(--purple-700);" id="propTituloCondiciones">Condiciones del crédito</h3>
                     <div class="grid grid-cols-2 gap-3 text-sm">
                       <p><span class="font-semibold" id="propLblMonto">Monto neto:</span> <span id="propMonto"></span></p>
-                      <p><span class="font-semibold">Línea:</span> <span id="propLinea"></span></p>
+                      <p><span class="font-semibold" id="propLblCuota">Cuota:</span> <span id="propCuota"></span></p>
                       <p><span class="font-semibold" id="propLblCapital">Capital:</span> <span id="propCapital"></span></p>
                       <p><span class="font-semibold" id="propLblTNA">TNA:</span> <span id="propTNA"></span></p>
+                      <p><span class="font-semibold" id="propLblTEM">TEM:</span> <span id="propTEM"></span></p>
                       <p><span class="font-semibold" id="propLblPlazo">Plazo:</span> <span id="propPlazo"></span></p>
                       <p id="propPeriodRow"><span class="font-semibold" id="propLblPeriod">Periodicidad:</span> <span id="propPeriod"></span></p>
                       <p id="propGraciaRow"><span class="font-semibold" id="propLblGracia">Períodos gracia:</span> <span id="propGracia"></span></p>
                       <p><span class="font-semibold" id="propLblFecha">Fecha otorg.:</span> <span id="propFecha"></span></p>
                     </div>
-                  </div>
-                  <div class="mb-6 rounded-lg p-5" style="background:var(--purple-50);" id="propResumenBlock">
-                    <h3 class="font-display text-lg mb-3" style="font-weight:600; color:var(--purple-700);">Resumen financiero</h3>
-                    <div class="grid grid-cols-2 gap-3 text-sm">
-                      <p><span class="font-semibold" id="propLblCuota">Cuota:</span> <span id="propCuota" class="text-lg" style="color:var(--purple-700);"></span></p>
-                      <p><span class="font-semibold" id="propLblTEM">TEM:</span> <span id="propTEM"></span></p>
-                      <p><span class="font-semibold" id="propLblTotalInt">Total intereses:</span> <span id="propTotalInt"></span></p>
-                      <p><span class="font-semibold" id="propLblTotalAbo">Total a abonar:</span> <span id="propTotalAbo" class="text-lg" style="color:var(--purple-700);"></span></p>
+                    <div class="rounded-lg p-5 mt-5" style="background:var(--purple-800);">
+                      <p class="font-display" style="font-size:0.7rem; text-transform:uppercase; letter-spacing:0.06em; color:#C9B8D1; margin:0 0 6px; text-align:left;">Resumen financiero</p>
+                      <p id="propResumenTexto" style="font-family:'Fraunces',serif; font-size:1.3rem; font-weight:600; color:#fff; margin:0; text-align:center;"></p>
                     </div>
                   </div>
 
@@ -1084,7 +1080,7 @@ const db = firebase.firestore();
 // un admin marca una versión nueva como la única válida.
 // IMPORTANTE: subir este número cada vez que se entregue un archivo nuevo.
 // ============================================================
-const APP_VERSION = 31;
+const APP_VERSION = 38;
 let versionBloqueada = false;
 
 const verificarVersion = async () => {
@@ -2002,6 +1998,11 @@ const renderResultadoBCRA = (contenedor, data) => {
   }
 };
 
+// Guardamos la razón social que devuelve el BCRA (y para qué CUIT es válida)
+// para poder usarla como nombre del cliente en la propuesta comercial.
+let denominacionBCRAActual = null;
+let cuitConsultadoBCRA = null;
+
 const consultarBCRA = async (cuit, contenedor) => {
   const limpio = (cuit || '').replace(/\D/g, '');
   if (limpio.length !== 11) return showToast('El CUIT debe tener 11 dígitos', 'error');
@@ -2013,8 +2014,12 @@ const consultarBCRA = async (cuit, contenedor) => {
     const resp = await fetch(`/api/bcra?cuit=${limpio}`);
     const data = await resp.json();
     renderResultadoBCRA(contenedor, data);
+    denominacionBCRAActual = data.denominacion || null;
+    cuitConsultadoBCRA = limpio;
   } catch (err) {
     renderResultadoBCRA(contenedor, { ok: false, error: 'No se pudo conectar con el servicio del BCRA.' });
+    denominacionBCRAActual = null;
+    cuitConsultadoBCRA = null;
   }
 };
 
@@ -2395,9 +2400,13 @@ const calcularPrestamo = () => {
     diasPrimeraCuota = Math.round((fechaPrimeraNormal - fechaObj) / (1000 * 60 * 60 * 24));
   }
 
+  const cuitActual = document.getElementById('cuit').value.trim();
+  const cuitActualLimpio = cuitActual.replace(/\D/g, '');
+  const clienteDisplay = (denominacionBCRAActual && cuitConsultadoBCRA === cuitActualLimpio) ? denominacionBCRAActual : cliente;
+
   simulacionActual = {
     id: Date.now(), fecha: new Date().toISOString(), tipo: 'prestamo',
-    cliente, cuit: document.getElementById('cuit').value.trim(), moneda, monto, capital, tna, plazoMeses, mesesPeriodo, esCampo, esModificable, cuotasModificables: mesesCuotasModificable, cantidadCuotas, cuotaVariable,
+    cliente, clienteDisplay, cuit: cuitActual, moneda, monto, capital, tna, plazoMeses, mesesPeriodo, esCampo, esModificable, cuotasModificables: mesesCuotasModificable, cantidadCuotas, cuotaVariable,
     fechaOtorg, gracia, cuota, tep, tea, tem, cft, totalIntereses, totalAbonado, diasPrimeraCuota,
     linea: lineaSeleccionadaActual ? lineaSeleccionadaActual.nombre : 'Sin línea',
     lineaData: lineaSeleccionadaActual,
@@ -2551,11 +2560,13 @@ const actualizarPropuesta = () => {
   if (!simulacionActual) return;
   const s = simulacionActual;
   document.getElementById('fechaPropuesta').textContent = new Date().toLocaleDateString('es-AR');
-  document.getElementById('propCliente').textContent = s.cliente;
+  document.getElementById('propCliente').textContent = s.clienteDisplay || s.cliente;
+  const cuitLimpio = (s.cuit || '').replace(/\D/g, '');
+  document.getElementById('propCuitInline').classList.toggle('hidden', cuitLimpio.length !== 11);
+  if (cuitLimpio.length === 11) document.getElementById('propCuit').textContent = s.cuit;
 
   if (s.tipo === 'cheque') {
     document.getElementById('propCondicionesBlock').classList.add('hidden');
-    document.getElementById('propResumenBlock').classList.add('hidden');
     document.getElementById('propChequeBloque').classList.remove('hidden');
     document.getElementById('propChequeLegal').classList.remove('hidden');
 
@@ -2587,7 +2598,6 @@ const actualizarPropuesta = () => {
   }
 
   document.getElementById('propCondicionesBlock').classList.remove('hidden');
-  document.getElementById('propResumenBlock').classList.remove('hidden');
   document.getElementById('propChequeBloque').classList.add('hidden');
   document.getElementById('propChequeLegal').classList.add('hidden');
 
@@ -2595,7 +2605,6 @@ const actualizarPropuesta = () => {
   document.getElementById('propTituloCondiciones').textContent = 'Condiciones del crédito';
   document.getElementById('propLblMonto').textContent = 'Monto neto:';
   document.getElementById('propMonto').textContent = fmt(redondearPesos(s.monto), 0, s.moneda);
-  document.getElementById('propLinea').textContent = s.linea;
   document.getElementById('propLblCapital').textContent = 'Capital:';
   document.getElementById('propCapital').textContent = fmt(redondearPesos(s.capital), 0, s.moneda);
   document.getElementById('propLblTNA').textContent = 'TNA:';
@@ -2611,13 +2620,12 @@ const actualizarPropuesta = () => {
   document.getElementById('propLblFecha').textContent = 'Fecha otorg.:';
   document.getElementById('propFecha').textContent = new Date(s.fechaOtorg + 'T00:00:00').toLocaleDateString('es-AR');
   document.getElementById('propLblCuota').textContent = s.cuotaVariable ? 'Cuota promedio:' : 'Cuota:';
-  document.getElementById('propCuota').textContent = fmt(redondearPesos(s.cuota), 0, s.moneda);
+  document.getElementById('propCuota').textContent = fmt(redondearPesos(s.cuota), 0, s.moneda) + (s.cuotaVariable ? '' : ' (fijas)');
   document.getElementById('propLblTEM').textContent = 'TEM:';
   document.getElementById('propTEM').textContent = fmtNum(s.tem) + '%';
-  document.getElementById('propLblTotalInt').textContent = 'Total intereses:';
-  document.getElementById('propTotalInt').textContent = fmt(redondearPesos(s.totalIntereses), 0, s.moneda);
-  document.getElementById('propLblTotalAbo').textContent = 'Total a abonar:';
-  document.getElementById('propTotalAbo').textContent = fmt(redondearPesos(s.totalAbonado), 0, s.moneda);
+  const cantCuotasTexto = s.cantidadCuotas === 1 ? '1 cuota' : `${s.cantidadCuotas} cuotas`;
+  const promedioTexto = s.cuotaVariable ? ' promedio' : '';
+  document.getElementById('propResumenTexto').textContent = `${fmt(redondearPesos(s.monto), 0, s.moneda)} en ${cantCuotasTexto}${promedioTexto} de ${fmt(redondearPesos(s.cuota), 0, s.moneda)}`;
 };
 
 // Versión informal/llamativa para compartir por WhatsApp: solo lo esencial
@@ -2695,6 +2703,8 @@ const nuevaSimulacion = () => {
   ['cliente','monto','tna','plazo','gracia','cuit'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('gracia').value = 0;
   document.getElementById('resultadoBCRA').classList.add('hidden');
+  denominacionBCRAActual = null;
+  cuitConsultadoBCRA = null;
   document.getElementById('avisoTNAPlazo').classList.add('hidden');
   document.getElementById('lineaSeleccionada').value = '';
   document.getElementById('fecha').valueAsDate = new Date();
@@ -3292,6 +3302,10 @@ document.getElementById('tipoManual').addEventListener('change', (e) => {
 document.getElementById('btnAgregarCheque').addEventListener('click', agregarCheque);
 document.getElementById('btnConsultarBCRA').addEventListener('click', () => {
   consultarBCRA(document.getElementById('cuit').value, document.getElementById('resultadoBCRA'));
+});
+document.getElementById('cuit').addEventListener('input', () => {
+  denominacionBCRAActual = null;
+  cuitConsultadoBCRA = null;
 });
 document.getElementById('btnCalcular').addEventListener('click', calcular);
 document.getElementById('btnGuardar').addEventListener('click', guardarSimulacion);
