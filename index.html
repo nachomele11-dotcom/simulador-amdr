@@ -517,6 +517,14 @@
                         <label class="field-label">Sellado solic. $</label>
                         <input id="manualChSelladoSolic" type="number" class="input-field" placeholder="0" min="0" step="1" value="0">
                       </div>
+                      <div>
+                        <label class="field-label">Gasto fijo x cheque $</label>
+                        <input id="manualChGastoFijo" type="number" class="input-field" placeholder="0" min="0" step="1" value="0">
+                      </div>
+                      <div>
+                        <label class="field-label">Gasto fijo mínimo $</label>
+                        <input id="manualChGastoFijoMinimo" type="number" class="input-field" placeholder="0" min="0" step="1" value="0">
+                      </div>
                     </div>
                     <p class="input-help">Sin tramos: se aplica la misma TNA sin importar los días.</p>
                   </div>
@@ -878,6 +886,14 @@
                     <input id="lineaSelladoSolicCheque" type="number" class="input-field" placeholder="0" min="0" step="1">
                   </div>
                   <div>
+                    <label class="field-label">Gasto fijo por cheque $</label>
+                    <input id="lineaGastoFijoCheque" type="number" class="input-field" placeholder="0" min="0" step="1">
+                  </div>
+                  <div>
+                    <label class="field-label">Gasto fijo mínimo por operación $ <span class="font-normal" style="color:var(--ink-faint);">(si "gasto fijo x cheque" × cantidad de cheques no llega a este piso, se cobra este mínimo en su lugar)</span></label>
+                    <input id="lineaGastoFijoMinimo" type="number" class="input-field" placeholder="0" min="0" step="1">
+                  </div>
+                  <div>
                     <label class="field-label">Tramos de TNA según días hasta el cobro *</label>
                     <p class="input-help mb-2">La TNA que se aplica depende de cuántos días faltan para la fecha de cobro del cheque.</p>
                     <div id="tramosCheque" class="space-y-2"></div>
@@ -1087,7 +1103,7 @@ const db = firebase.firestore();
 // un admin marca una versión nueva como la única válida.
 // IMPORTANTE: subir este número cada vez que se entregue un archivo nuevo.
 // ============================================================
-const APP_VERSION = 45;
+const APP_VERSION = 46;
 let versionBloqueada = false;
 
 const verificarVersion = async () => {
@@ -1267,6 +1283,7 @@ const mostrarLineas = () => {
             <p><span class="font-semibold">Sellado prov:</span> ${fmtNum(l.selladoPct)}%</p>
             <p><span class="font-semibold">Gasto admin:</span> ${fmtNum(l.gastoAdminPct)}%</p>
             ${l.selladoSolic > 0 ? `<p><span class="font-semibold">Sellado sol:</span> ${fmt(l.selladoSolic)}</p>` : ''}
+            ${l.gastoFijoCheque > 0 ? `<p><span class="font-semibold">Gasto fijo:</span> ${fmt(l.gastoFijoCheque)}/cheque${l.gastoFijoMinimo > 0 ? ` (mín. ${fmt(l.gastoFijoMinimo)})` : ''}</p>` : ''}
             <p class="col-span-2"><span class="font-semibold">Tramos TNA:</span> ${(l.tramos || []).map(t => `${t.desde}-${t.hasta}d: ${fmtNum(t.tna)}%`).join(' · ') || 'sin configurar'}</p>
     ` : `
             ${(l.tramosTNA && l.tramosTNA.length > 0)
@@ -1431,6 +1448,8 @@ const editarLinea = (id) => {
     document.getElementById('lineaSelladoCheque').value = linea.selladoPct || 0;
     document.getElementById('lineaGastoAdmin').value = linea.gastoAdminPct || 0;
     document.getElementById('lineaSelladoSolicCheque').value = linea.selladoSolic || 0;
+    document.getElementById('lineaGastoFijoCheque').value = linea.gastoFijoCheque || 0;
+    document.getElementById('lineaGastoFijoMinimo').value = linea.gastoFijoMinimo || 0;
     tramosActuales = JSON.parse(JSON.stringify(linea.tramos || []));
     renderTramos();
   } else {
@@ -1460,7 +1479,7 @@ const cancelarEdicionLinea = () => {
   editandoLinea = null;
   document.getElementById('lineaId').value = '';
   document.getElementById('lineaTipo').value = 'prestamo';
-  ['lineaNombre','lineaTNA','lineaSellado','lineaGastoOtorg','lineaSelladoSolic','lineaSegVidaPorc','lineaSelladoCheque','lineaGastoAdmin','lineaSelladoSolicCheque'].forEach(id => document.getElementById(id).value = '');
+  ['lineaNombre','lineaTNA','lineaSellado','lineaGastoOtorg','lineaSelladoSolic','lineaSegVidaPorc','lineaSelladoCheque','lineaGastoAdmin','lineaSelladoSolicCheque','lineaGastoFijoCheque','lineaGastoFijoMinimo'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('lineaMoneda').value = 'ARS';
   document.getElementById('lineaSegVida').value = 'N';
   document.getElementById('lineaIVA').value = 0;
@@ -1500,6 +1519,8 @@ const guardarLinea = async () => {
       selladoPct: parseFloat(document.getElementById('lineaSelladoCheque').value) || 0,
       gastoAdminPct: parseFloat(document.getElementById('lineaGastoAdmin').value) || 0,
       selladoSolic: parseFloat(document.getElementById('lineaSelladoSolicCheque').value) || 0,
+      gastoFijoCheque: parseFloat(document.getElementById('lineaGastoFijoCheque').value) || 0,
+      gastoFijoMinimo: parseFloat(document.getElementById('lineaGastoFijoMinimo').value) || 0,
       tramos: tramosActuales.map(t => ({ desde: t.desde, hasta: t.hasta, tna: t.tna })).sort((a, b) => a.desde - b.desde),
       actualizadoPor: currentUser.email,
       actualizadoEn: new Date().toISOString()
@@ -1586,6 +1607,8 @@ const obtenerDescuentosManualCheque = () => ({
   selladoPct: parseFloat(document.getElementById('manualChSellado').value) || 0,
   gastoAdminPct: parseFloat(document.getElementById('manualChGastoAdmin').value) || 0,
   selladoSolic: parseFloat(document.getElementById('manualChSelladoSolic').value) || 0,
+  gastoFijoCheque: parseFloat(document.getElementById('manualChGastoFijo').value) || 0,
+  gastoFijoMinimo: parseFloat(document.getElementById('manualChGastoFijoMinimo').value) || 0,
   // Sin tramos: un único tramo que cubre cualquier plazo con la TNA fija cargada
   tramos: [{ desde: 0, hasta: 999999, tna: parseFloat(document.getElementById('manualChTNA').value) || 0 }]
 });
@@ -1656,6 +1679,7 @@ const aplicarLinea = () => {
       if (linea.selladoPct > 0) partes.push(`Sellado provincial: ${fmtNum(linea.selladoPct)}%`);
       partes.push(`Gasto administrativo: ${fmtNum(linea.gastoAdminPct)}% (sobre valor nominal)`);
       if (linea.selladoSolic > 0) partes.push(`Sellado solicitud: ${fmt(linea.selladoSolic)} (una vez por operación)`);
+      if (linea.gastoFijoCheque > 0) partes.push(`Gasto fijo: ${fmt(linea.gastoFijoCheque)} por cheque${linea.gastoFijoMinimo > 0 ? ` (mínimo ${fmt(linea.gastoFijoMinimo)} por operación)` : ''}`);
       partes.push(`Tramos TNA: ${(linea.tramos || []).map(t => `${t.desde}-${t.hasta} días: ${fmtNum(t.tna)}%`).join(' · ') || 'sin configurar'}`);
       document.getElementById('infoDescuentos').innerHTML = partes.join('<br>');
     } else {
@@ -2527,7 +2551,12 @@ const calcularCheque = () => {
   const sumaDescuento = detalle.reduce((s, c) => s + c.descuento, 0);
   const sumaSelladoProv = detalle.reduce((s, c) => s + c.selladoProv, 0);
   const sumaGastoAdmin = detalle.reduce((s, c) => s + c.gastoAdmin, 0);
-  const costoTotal = sumaDescuento + sumaSelladoProv + sumaGastoAdmin + selladoSolic;
+  // Gasto fijo: $ por cheque, pero con un piso mínimo para toda la operación
+  // (ej: $100 x cheque, mínimo $450 en total — si hay pocos cheques, se cobra el mínimo).
+  const gastoFijoCalculado = (lineaSeleccionadaActual.gastoFijoCheque || 0) * detalle.length;
+  const gastoFijoMinimo = lineaSeleccionadaActual.gastoFijoMinimo || 0;
+  const gastoFijo = Math.max(gastoFijoCalculado, gastoFijoMinimo);
+  const costoTotal = sumaDescuento + sumaSelladoProv + sumaGastoAdmin + selladoSolic + gastoFijo;
   const montoNeto = sumaValorNominal - costoTotal;
   if (montoNeto <= 0) return showToast('El descuento y los gastos superan el valor nominal de los cheques', 'error');
 
@@ -2543,7 +2572,7 @@ const calcularCheque = () => {
   simulacionActual = {
     id: Date.now(), fecha: new Date().toISOString(), tipo: 'cheque',
     cliente, clienteDisplay, cuit: cuitActual, moneda, fechaOperacion, cheques: detalle,
-    sumaValorNominal, sumaDescuento, sumaSelladoProv, sumaGastoAdmin, selladoSolic,
+    sumaValorNominal, sumaDescuento, sumaSelladoProv, sumaGastoAdmin, selladoSolic, gastoFijo,
     costoTotal, montoNeto, cft, diasMax, diasPromedioPonderado, tasaPromedioPonderada,
     linea: lineaSeleccionadaActual.nombre, lineaData: lineaSeleccionadaActual
   };
@@ -2585,6 +2614,7 @@ const actualizarTablaCheque = () => {
     ['Sellado provincial total', fmt(s.sumaSelladoProv, 2, s.moneda)],
     ['Gasto administrativo total', fmt(s.sumaGastoAdmin, 2, s.moneda)],
     ['Sellado solicitud (una vez)', fmt(s.selladoSolic, 2, s.moneda)],
+    ['Gasto fijo cheques', fmt(s.gastoFijo, 2, s.moneda)],
     ['Costo total', fmt(s.costoTotal, 2, s.moneda)],
     ['CFT (nominal anual aprox.)', fmtNum(s.cft) + '%'],
     ['Monto neto a recibir', fmt(s.montoNeto, 2, s.moneda)]
@@ -2765,7 +2795,7 @@ const nuevaSimulacion = () => {
   document.getElementById('tipoManual').value = 'prestamo';
   document.getElementById('manualPrestamoCampos').classList.remove('hidden');
   document.getElementById('manualChequeCampos').classList.add('hidden');
-  ['manualChTNA','manualChSellado','manualChGastoAdmin','manualChSelladoSolic'].forEach(id => document.getElementById(id).value = 0);
+  ['manualChTNA','manualChSellado','manualChGastoAdmin','manualChSelladoSolic','manualChGastoFijo','manualChGastoFijoMinimo'].forEach(id => document.getElementById(id).value = 0);
   chequesActuales = [];
   document.getElementById('avisoCheque90').classList.add('hidden');
   cuotasModificablesActuales = [];
@@ -3128,6 +3158,7 @@ const generarPDFCronograma = async () => {
         <p style="margin:0;"><span style="font-weight:600;">Sellado provincial total:</span> ${fmt(s.sumaSelladoProv, 2, s.moneda)}</p>
         <p style="margin:0;"><span style="font-weight:600;">Gasto administrativo total:</span> ${fmt(s.sumaGastoAdmin, 2, s.moneda)}</p>
         <p style="margin:0;"><span style="font-weight:600;">Sellado solicitud (una vez):</span> ${fmt(s.selladoSolic, 2, s.moneda)}</p>
+        <p style="margin:0;"><span style="font-weight:600;">Gasto fijo cheques:</span> ${fmt(s.gastoFijo, 2, s.moneda)}</p>
         <p style="margin:0;"><span style="font-weight:600;">CFT (nominal anual aprox.):</span> ${fmtNum(s.cft)}%</p>
       </div>`;
   } else {
