@@ -1103,7 +1103,7 @@ const db = firebase.firestore();
 // un admin marca una versión nueva como la única válida.
 // IMPORTANTE: subir este número cada vez que se entregue un archivo nuevo.
 // ============================================================
-const APP_VERSION = 46;
+const APP_VERSION = 47;
 let versionBloqueada = false;
 
 const verificarVersion = async () => {
@@ -1776,8 +1776,14 @@ const esDiaHabil = (fecha) => {
 
 // Suma días HÁBILES (saltea sábados, domingos y feriados) a la fecha de cobro
 // para obtener la fecha real de acreditación del cheque.
+// Si el cheque vence un día no hábil (sábado, domingo o feriado), primero se
+// corre al siguiente día hábil (así calcula el sistema real) y RECIÉN DESDE AHÍ
+// se cuentan los 2 días hábiles de acreditación. Si ya vence en día hábil, no cambia nada.
 const fechaAcreditacionCheque = (fechaCobroStr) => {
   const f = new Date(fechaCobroStr + 'T00:00:00');
+  while (!esDiaHabil(f)) {
+    f.setDate(f.getDate() + 1);
+  }
   let restantes = DIAS_ACREDITACION;
   while (restantes > 0) {
     f.setDate(f.getDate() + 1);
@@ -3391,7 +3397,7 @@ document.getElementById('tipoManual').addEventListener('change', (e) => {
   document.getElementById('manualChequeCampos').classList.toggle('hidden', !esCheque);
   if (!document.getElementById('lineaSeleccionada').value) aplicarLinea();
 });
-['manualChTNA','manualChSellado','manualChGastoAdmin','manualChSelladoSolic'].forEach(id => {
+['manualChTNA','manualChSellado','manualChGastoAdmin','manualChSelladoSolic','manualChGastoFijo','manualChGastoFijoMinimo'].forEach(id => {
   document.getElementById(id).addEventListener('input', () => {
     if (!document.getElementById('lineaSeleccionada').value && document.getElementById('tipoManual').value === 'cheque') {
       lineaSeleccionadaActual = obtenerDescuentosManualCheque();
