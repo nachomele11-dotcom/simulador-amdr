@@ -518,7 +518,7 @@
                         <input id="manualChSelladoSolic" type="number" class="input-field" placeholder="0" min="0" step="1" value="0">
                       </div>
                       <div>
-                        <label class="field-label">Gasto fijo x cheque $</label>
+                        <label class="field-label">Gasto fijo cheque $</label>
                         <input id="manualChGastoFijo" type="number" class="input-field" placeholder="0" min="0" step="1" value="0">
                       </div>
                       <div>
@@ -1103,7 +1103,7 @@ const db = firebase.firestore();
 // un admin marca una versión nueva como la única válida.
 // IMPORTANTE: subir este número cada vez que se entregue un archivo nuevo.
 // ============================================================
-const APP_VERSION = 47;
+const APP_VERSION = 48;
 let versionBloqueada = false;
 
 const verificarVersion = async () => {
@@ -3086,13 +3086,39 @@ const compararSimulaciones = () => {
 // Espera a que todas las imágenes dentro de un elemento terminen de decodificarse.
 // Sin esto, html2canvas a veces captura antes de que el logo (base64) esté listo
 // y sale en blanco en la imagen/PDF exportado, aunque se vea bien en pantalla.
+//
+// También precarga los pesos de Fraunces / IBM Plex Sans / Inter que se usan en las
+// propuestas exportadas. OJO: "document.fonts.ready" NO alcanza acá — puede estar
+// resuelto ("loaded") mientras un peso puntual (ej. Fraunces 700, el del monto grande
+// de la propuesta de WhatsApp) todavía no se cargó, porque el navegador solo pide un
+// peso la primera vez que se necesita para pintar algo en pantalla. Si html2canvas
+// captura antes de eso, usa la tipografía de reemplazo (otro alto de línea) y el texto
+// queda corrido hacia abajo en la imagen exportada aunque en pantalla se vea bien.
+// document.fonts.load() con cada peso puntual fuerza la carga y espera a que esté listo.
+const PESOS_FUENTES_EXPORT = { 'Fraunces': [400, 500, 600, 700], '"IBM Plex Sans"': [400, 500, 600, 700], 'Inter': [400, 500, 600, 700, 800] };
+let fuentesExportPrecargadas = false;
+const precargarFuentesExport = async () => {
+  if (fuentesExportPrecargadas) return;
+  const promesas = [];
+  for (const familia in PESOS_FUENTES_EXPORT) {
+    for (const peso of PESOS_FUENTES_EXPORT[familia]) {
+      promesas.push(document.fonts.load(`${peso} 16px ${familia}`).catch(() => {}));
+    }
+  }
+  await Promise.all(promesas);
+  fuentesExportPrecargadas = true;
+};
+
 const esperarImagenes = async (elemento) => {
   const imgs = Array.from(elemento.querySelectorAll('img'));
-  await Promise.all(imgs.map(img => {
-    if (img.complete && img.naturalWidth > 0) return Promise.resolve();
-    if (img.decode) return img.decode().catch(() => new Promise(r => { img.onload = r; img.onerror = r; }));
-    return new Promise(r => { img.onload = r; img.onerror = r; });
-  }));
+  await Promise.all([
+    ...imgs.map(img => {
+      if (img.complete && img.naturalWidth > 0) return Promise.resolve();
+      if (img.decode) return img.decode().catch(() => new Promise(r => { img.onload = r; img.onerror = r; }));
+      return new Promise(r => { img.onload = r; img.onerror = r; });
+    }),
+    precargarFuentesExport()
+  ]);
 };
 
 const generarPDF = async () => {
