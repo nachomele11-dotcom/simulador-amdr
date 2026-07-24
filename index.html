@@ -548,10 +548,8 @@
                       <option value="3">Trimestral</option>
                       <option value="6">Semestral</option>
                       <option value="12">Anual</option>
-                      <option value="campo">Campo (semestral ene/jun)</option>
                       <option value="modificable">Modificable</option>
                     </select>
-                    <p id="ayudaPlazoCampo" class="input-help hidden">"Plazo (meses)" se toma como cantidad de semestres × 6 (ej: 36 = 6 cuotas). Los vencimientos son siempre 10/ene o 10/jun.</p>
                     <p id="ayudaPlazoModificable" class="input-help hidden">"Plazo (meses)" define el mes de la última cuota. Elegí abajo en qué mes cae cada cuota.</p>
                   </div>
                 </div>
@@ -1053,9 +1051,10 @@ const fraseCuotas = (n, mesesPeriodo) => {
   if (n === 1) return `1 cuota${adjetivosSingular[mesesPeriodo] || ''}`;
   return `${n} cuotas${adjetivosPlural[mesesPeriodo] || ''}`;
 };
-// Detecta si las cuotas de un cronograma NO son todas iguales (típico de Campo
-// y Modificable, donde cada tramo tiene una cantidad de meses distinta — y por
-// lo tanto una tasa y una cuota distintas). Se ignoran diferencias de centavos
+// Detecta si las cuotas de un cronograma NO son todas iguales (típico de
+// Modificable, o de cualquier periodicidad regular no mensual, donde cada
+// tramo puede tener una cantidad de días distinta — y por lo tanto una tasa
+// y una cuota distintas). Se ignoran diferencias de centavos
 // (redondeo normal de cierre), solo cuenta como "variable" si la diferencia es
 // real. Cuando es variable, hay que mostrar la cuota PROMEDIO en vez de "la" cuota.
 const cuotaEsVariable = (cronograma) => {
@@ -1103,7 +1102,7 @@ const db = firebase.firestore();
 // un admin marca una versión nueva como la única válida.
 // IMPORTANTE: subir este número cada vez que se entregue un archivo nuevo.
 // ============================================================
-const APP_VERSION = 50;
+const APP_VERSION = 51;
 let versionBloqueada = false;
 
 const verificarVersion = async () => {
@@ -1960,12 +1959,12 @@ const capitalDesdeCuota = (cuotaFija, tep, n) => {
 };
 
 // Inversa de calcularCapitalDesdeNeto: dado el capital (bruto), ¿cuál es el monto neto?
-const montoNetoDesdeCapital = (capital, linea, tep, n, fechaInicio, gracia) => {
+const montoNetoDesdeCapital = (capital, linea, tna, n, fechaInicio, gracia) => {
   if (!linea) return capital;
   const gastosFijos = linea.selladoSolic || 0;
   let fracSegVida = 0;
   if (linea.segVida === 'S' && linea.segVidaPorc > 0) {
-    const cronogramaUnitario = generarCronograma(1, tep, n, fechaInicio, 1, gracia);
+    const cronogramaUnitario = generarCronograma(1, tna, n, fechaInicio, 1, gracia);
     const sumaSaldosUnit = cronogramaUnitario.reduce((sum, c) => sum + c.saldoInicial, 0);
     fracSegVida = (linea.segVidaPorc / 100) * sumaSaldosUnit;
   }
@@ -2001,12 +2000,12 @@ const generarComparador = () => {
     const tep = calcularTEP(tna, 1);
 
     if (modo === 'monto') {
-      const capital = calcularCapitalDesdeNeto(valor, linea, tep, n, fechaHoy, 1, 0);
+      const capital = calcularCapitalDesdeNeto(valor, linea, tna, n, fechaHoy, 1, 0);
       const cuota = calcularCuotaFrances(capital, tep, n);
       resultados.push({ plazo: n, cuota });
     } else {
       const capital = capitalDesdeCuota(valor, tep, n);
-      const montoNeto = montoNetoDesdeCapital(capital, linea, tep, n, fechaHoy, 0);
+      const montoNeto = montoNetoDesdeCapital(capital, linea, tna, n, fechaHoy, 0);
       if (montoNeto <= 0) continue;
       resultados.push({ plazo: n, monto: montoNeto });
     }
@@ -2129,56 +2128,25 @@ const ajustarADiaHabilAnterior = (fecha) => {
 };
 
 // ============================================================
-// PERIODICIDAD "CAMPO": vencimientos fijos el 10 de enero y el 10 de junio
-// (no cada 6 meses desde el otorgamiento), alternando. Como enero->junio son
-// 5 meses y junio->enero son 7, los períodos NO son parejos — por eso la
-// cuota se recalcula en cada vencimiento (no puede ser una cuota fija única).
-// ============================================================
-const MESES_ANCLA_CAMPO = [0, 5]; // enero, junio (0-indexado)
-
-const fechaAnclaCampo = (mes, anio) => ajustarADiaHabilAnterior(new Date(anio, mes, 10));
-
-// Determina la fecha de la PRIMERA cuota según cuándo se pide el préstamo:
-//  - Pedido del 1 al 20 del mes: primera cuota = próximo 10/ene o 10/jun.
-//  - Pedido después del 20: se saltea ese próximo vencimiento (queda muy cerca)
-//    y la primera cuota pasa a ser el siguiente.
-const primeraFechaCampo = (fechaOtorgamiento) => {
-  const dia = fechaOtorgamiento.getDate();
-  let candidatas = [];
-  const anioBase = fechaOtorgamiento.getFullYear();
-  for (let y = anioBase; y <= anioBase + 2; y++) {
-    MESES_ANCLA_CAMPO.forEach(m => candidatas.push(new Date(y, m, 10)));
-  }
-  candidatas = candidatas.filter(f => f > fechaOtorgamiento).sort((a, b) => a - b);
-  const elegida = dia <= 20 ? candidatas[0] : candidatas[1];
-  return fechaAnclaCampo(elegida.getMonth(), elegida.getFullYear());
-};
-
-// Dada una fecha ancla (10/ene o 10/jun ya ajustada), devuelve la próxima ancla alternando
-const siguienteAnclaCampo = (anclaActual) => {
-  const mes = anclaActual.getMonth() === 0 ? 5 : 0; // el 10/ene ajustado nunca cruza a febrero, ni el 10/jun a julio
-  const anio = mes === 0 ? anclaActual.getFullYear() + 1 : anclaActual.getFullYear();
-  return fechaAnclaCampo(mes, anio);
-};
-
-// Genera las N fechas de vencimiento de Campo (incluye las de gracia si las hay)
-const generarFechasCampo = (fechaOtorgamiento, n) => {
-  const fechas = [primeraFechaCampo(fechaOtorgamiento)];
-  for (let i = 1; i < n; i++) fechas.push(siguienteAnclaCampo(fechas[i - 1]));
-  return fechas;
-};
-
-// Cronograma de Campo: misma forma de datos que generarCronograma (para que el
-// resto de la app —tabla, propuesta, PDF, WhatsApp— no necesite distinguirlo),
-// pero con cuota recalculada en cada vencimiento porque la tasa del período
-// cambia según sean 5 o 7 meses (usa la misma convención mensual compuesta
-// que el resto de la app, ya validada con Contaduría).
 // Cronograma "dinámico": dado un capital, una TNA y una lista de fechas de
 // vencimiento (que pueden estar separadas por una cantidad distinta de meses
 // cada vez), recalcula la cuota en cada vencimiento con la tasa efectiva que
-// corresponda a esos meses puntuales. La usan tanto "Campo" (fechas fijas
-// 10/ene-10/jun) como "Modificable" (fechas elegidas a mano).
-const generarCronogramaDesdeFechas = (capital, tna, fechas, fechaOtorgamiento, gracia) => {
+// corresponda a ese tramo puntual. La usa "Modificable", y también las
+// periodicidades regulares no mensuales (bimestral/trimestral/semestral/anual)
+// a través de generarCronograma.
+//
+// usarDiasReales=true (default): el interés de cada tramo se calcula con los
+// días de calendario REALES entre esa fecha y la anterior (TNA/365 × días) —
+// es lo correcto para cualquier periodicidad que no sea mensual, porque un
+// "período de 5 meses" puede tener 150, 152, 153 o 154 días según qué meses
+// concretos abarque, y esa diferencia mueve el interés de verdad (validado
+// contra la planilla de Contaduría: con días reales el interés total de un
+// caso real subió de $37.882.742,60 a $38.756.078,82, ~2,3% más).
+// usarDiasReales=false: aproxima cada mes a 30 días (TNA × 30×meses/365) — se
+// usa SOLO para Mensual, a pedido explícito, porque para períodos de un único
+// mes la aproximación es la convención tradicional y evita que la cuota varíe
+// cuota a cuota solo porque un mes tiene 28, 30 o 31 días.
+const generarCronogramaDesdeFechas = (capital, tna, fechas, fechaOtorgamiento, gracia, usarDiasReales = true) => {
   const cronograma = [];
   const n = fechas.length;
   let saldo = capital;
@@ -2186,8 +2154,14 @@ const generarCronogramaDesdeFechas = (capital, tna, fechas, fechaOtorgamiento, g
 
   for (let i = 0; i < n; i++) {
     const fechaPago = fechas[i];
-    const mesesEnPeriodo = (fechaPago.getFullYear() * 12 + fechaPago.getMonth()) - (fechaAnterior.getFullYear() * 12 + fechaAnterior.getMonth());
-    const tepPeriodo = calcularTEP(tna, mesesEnPeriodo);
+    let tepPeriodo;
+    if (usarDiasReales) {
+      const dias = Math.round((fechaPago - fechaAnterior) / (1000 * 60 * 60 * 24));
+      tepPeriodo = (tna / 100) * (dias / 365);
+    } else {
+      const mesesEnPeriodo = (fechaPago.getFullYear() * 12 + fechaPago.getMonth()) - (fechaAnterior.getFullYear() * 12 + fechaAnterior.getMonth());
+      tepPeriodo = calcularTEP(tna, mesesEnPeriodo);
+    }
     const interes = saldo * tepPeriodo;
     const esGracia = i < gracia;
 
@@ -2218,13 +2192,10 @@ const generarCronogramaDesdeFechas = (capital, tna, fechas, fechaOtorgamiento, g
   return cronograma;
 };
 
-const generarCronogramaCampo = (capital, tna, n, fechaOtorgamiento, gracia) =>
-  generarCronogramaDesdeFechas(capital, tna, generarFechasCampo(fechaOtorgamiento, n), fechaOtorgamiento, gracia);
-
 // ============================================================
 // PERIODICIDAD "MODIFICABLE": el usuario elige directamente en qué mes
-// (contando desde el otorgamiento) cae cada cuota — no hay meses fijos como
-// en Campo. La última cuota siempre coincide con "Plazo (meses)".
+// (contando desde el otorgamiento) cae cada cuota — no hay meses fijos.
+// La última cuota siempre coincide con "Plazo (meses)".
 // ============================================================
 const fechaCuotaModificable = (fechaOtorgamiento, mesN) => {
   const idx = (fechaOtorgamiento.getFullYear() * 12 + fechaOtorgamiento.getMonth()) + mesN;
@@ -2237,13 +2208,14 @@ const generarCronogramaModificable = (capital, tna, mesesCuotas, fechaOtorgamien
 };
 
 // Determina en qué mes/año cae la PRIMERA cuota para periodicidades regulares
-// (mensual/bimestral/trimestral/semestral/anual) — misma regla que Campo:
-// pedido del 1 al 20 -> próximo vencimiento natural; pedido después del 20 ->
-// se saltea ese (queda muy cerca) y pasa al siguiente. El vencimiento siempre
-// cae el día 10 (ajustado a día hábil), no el mismo día en que se pidió.
+// (mensual/bimestral/trimestral/semestral/anual).
+// La regla de "pedido el 21 o después salta un período completo" aplica SOLO a
+// Mensual (a pedido explícito) — para el resto, la primera cuota siempre cae en
+// el próximo vencimiento natural, sin importar el día del mes en que se pidió.
 const indiceMesPrimeraCuota = (fechaOtorgamiento, mesesPeriodo) => {
+  const esMensual = mesesPeriodo === 1;
   const dia = fechaOtorgamiento.getDate();
-  const saltos = dia <= 20 ? 1 : 2;
+  const saltos = (esMensual && dia > 20) ? 2 : 1;
   return (fechaOtorgamiento.getFullYear() * 12 + fechaOtorgamiento.getMonth()) + mesesPeriodo * saltos;
 };
 const fechaCuotaRegular = (indiceMesBase, mesesPeriodo, i) => {
@@ -2251,45 +2223,18 @@ const fechaCuotaRegular = (indiceMesBase, mesesPeriodo, i) => {
   return ajustarADiaHabilAnterior(new Date(Math.floor(idx / 12), idx % 12, 10));
 };
 
-const generarCronograma = (capital, tep, n, fechaInicio, mesesPeriodo, gracia) => {
-  const cronograma = [];
-  let saldo = capital;
+// Cronograma para periodicidades regulares (mensual/bimestral/trimestral/
+// semestral/anual). Arma las fechas de cada vencimiento y delega en
+// generarCronogramaDesdeFechas: Mensual usa la aproximación de 30 días por
+// mes (usarDiasReales=false); el resto usa los días de calendario reales
+// entre cada vencimiento.
+const generarCronograma = (capital, tna, n, fechaInicio, mesesPeriodo, gracia) => {
   const fecha = new Date(fechaInicio);
   const indiceMesBase = indiceMesPrimeraCuota(fecha, mesesPeriodo);
-
-  for (let i = 0; i < gracia; i++) {
-    const interes = saldo * tep;
-    saldo += interes;
-    const fechaPago = fechaCuotaRegular(indiceMesBase, mesesPeriodo, i);
-    cronograma.push({ numCuota: i + 1, fecha: fechaPago.toLocaleDateString('es-AR'), saldoInicial: saldo - interes, capital: 0, interes, cuota: 0, saldoFinal: saldo, tipo: 'gracia' });
-  }
-
-  // La cuota se calcula sobre el saldo YA CAPITALIZADO después de la gracia
-  // (no sobre el capital original). Si se usara el capital original, la cuota
-  // queda subestimada y la última termina absorbiendo una diferencia grande
-  // (no solo centavos de redondeo) — este era el bug reportado.
-  const cuota = calcularCuotaFrances(saldo, tep, n - gracia);
-
-  for (let i = gracia; i < n; i++) {
-    const interes = saldo * tep;
-    let amortizacion = cuota - interes;
-    const saldoAnterior = saldo;
-    const esUltima = (i === n - 1);
-    if (esUltima) amortizacion = saldoAnterior; // cierra el saldo exacto en $0, evita arrastre de centavos
-    saldo -= amortizacion;
-    const fechaPago = fechaCuotaRegular(indiceMesBase, mesesPeriodo, i); // vencimiento siempre día 10, ajustado a día hábil
-    cronograma.push({
-      numCuota: i + 1,
-      fecha: fechaPago.toLocaleDateString('es-AR'),
-      saldoInicial: saldoAnterior,
-      capital: amortizacion,
-      interes,
-      cuota: esUltima ? (amortizacion + interes) : cuota,
-      saldoFinal: esUltima ? 0 : Math.max(0, saldo),
-      tipo: 'normal'
-    });
-  }
-  return cronograma;
+  const fechas = [];
+  for (let i = 0; i < n; i++) fechas.push(fechaCuotaRegular(indiceMesBase, mesesPeriodo, i));
+  const usarDiasReales = mesesPeriodo !== 1;
+  return generarCronogramaDesdeFechas(capital, tna, fechas, fecha, gracia, usarDiasReales);
 };
 
 // Capital bruto a partir del monto neto solicitado, replicando exactamente
@@ -2301,7 +2246,7 @@ const generarCronograma = (capital, tep, n, fechaInicio, mesesPeriodo, gracia) =
 //   IVA sobre gastos = %IVA * (Sellado + GastoOtorg + SegVida)
 // Como todos estos términos son proporcionales al capital para una TNA/plazo
 // dados, existe una solución exacta en forma cerrada (sin iterar).
-const calcularCapitalDesdeNeto = (montoNeto, linea, tep, n, fechaInicio, mesesPeriodo, gracia, esCampo = false, tnaCampo = null, fechasModificable = null) => {
+const calcularCapitalDesdeNeto = (montoNeto, linea, tna, n, fechaInicio, mesesPeriodo, gracia, fechasModificable = null) => {
   if (!linea) return montoNeto;
 
   const gastosFijos = linea.selladoSolic || 0;
@@ -2310,10 +2255,8 @@ const calcularCapitalDesdeNeto = (montoNeto, linea, tep, n, fechaInicio, mesesPe
   let fracSegVida = 0;
   if (linea.segVida === 'S' && linea.segVidaPorc > 0) {
     const cronogramaUnitario = fechasModificable
-      ? generarCronogramaDesdeFechas(1, tnaCampo, fechasModificable, fechaInicio, gracia)
-      : esCampo
-        ? generarCronogramaCampo(1, tnaCampo, n, fechaInicio, gracia)
-        : generarCronograma(1, tep, n, fechaInicio, mesesPeriodo, gracia);
+      ? generarCronogramaDesdeFechas(1, tna, fechasModificable, fechaInicio, gracia, true)
+      : generarCronograma(1, tna, n, fechaInicio, mesesPeriodo, gracia);
     const sumaSaldosUnit = cronogramaUnitario.reduce((sum, c) => sum + c.saldoInicial, 0);
     fracSegVida = (linea.segVidaPorc / 100) * sumaSaldosUnit;
   }
@@ -2374,8 +2317,7 @@ const actualizarCapital = () => {
   const moneda = document.getElementById('moneda').value;
   const tna = parseFloat(document.getElementById('tna').value) || 0;
   const periodicidadVal = document.getElementById('periodicidad').value;
-  const esCampo = periodicidadVal === 'campo';
-  const mesesPeriodo = esCampo ? 6 : (parseInt(periodicidadVal) || 1);
+  const mesesPeriodo = periodicidadVal === 'modificable' ? 6 : (parseInt(periodicidadVal) || 1);
   const plazoMeses = parseInt(document.getElementById('plazo').value) || 0;
   const gracia = parseInt(document.getElementById('gracia').value) || 0;
   const fechaOtorg = document.getElementById('fecha').value || new Date().toISOString().slice(0,10);
@@ -2384,11 +2326,8 @@ const actualizarCapital = () => {
 
   let capital = monto;
   if (lineaSeleccionadaActual && cantidadCuotas > 0 && tna > 0) {
-    const tep = calcularTEP(tna, mesesPeriodo);
     const graciaSeguro = Math.min(gracia, Math.max(cantidadCuotas - 1, 0));
-    capital = esCampo
-      ? calcularCapitalDesdeNeto(monto, lineaSeleccionadaActual, tep, cantidadCuotas, fechaOtorgObj, mesesPeriodo, graciaSeguro, true, tna)
-      : calcularCapitalDesdeNeto(monto, lineaSeleccionadaActual, tep, cantidadCuotas, fechaOtorgObj, mesesPeriodo, graciaSeguro);
+    capital = calcularCapitalDesdeNeto(monto, lineaSeleccionadaActual, tna, cantidadCuotas, fechaOtorgObj, mesesPeriodo, graciaSeguro);
   } else if (lineaSeleccionadaActual) {
     capital = calcularCapitalDesdeNeto(monto, lineaSeleccionadaActual, 0, 1, fechaOtorgObj, 1, 0);
   }
@@ -2411,9 +2350,8 @@ const calcularPrestamo = () => {
   const tna = parseFloat(document.getElementById('tna').value);
   const plazoMeses = parseInt(document.getElementById('plazo').value);
   const periodicidadVal = document.getElementById('periodicidad').value;
-  const esCampo = periodicidadVal === 'campo';
   const esModificable = periodicidadVal === 'modificable';
-  const mesesPeriodo = (esCampo || esModificable) ? 6 : parseInt(periodicidadVal);
+  const mesesPeriodo = esModificable ? 6 : parseInt(periodicidadVal);
   const fechaOtorg = document.getElementById('fecha').value;
   const gracia = parseInt(document.getElementById('gracia').value) || 0;
 
@@ -2437,10 +2375,12 @@ const calcularPrestamo = () => {
   if (cantidadCuotas <= 0) return showToast('El plazo debe ser mayor o igual a la periodicidad', 'error');
   if (gracia >= cantidadCuotas) return showToast('Los períodos de gracia deben ser menores a la cantidad de cuotas', 'error');
 
-  // Para Campo y Modificable no existe una única "tasa del período" (los meses
-  // entre cuotas no son parejos) — TEP/TEA/TEM que se muestran son una referencia
-  // aproximada (equivalente a un semestre parejo de 6 meses); el cronograma real
-  // recalcula la tasa correcta en cada vencimiento según los meses reales de cada tramo.
+  // TEP/TEA/TEM que se muestran son una tasa DE REFERENCIA (30 días × mes).
+  // Para Mensual coincide exactamente con la tasa real de cada cuota. Para el
+  // resto de las periodicidades (que ahora usan días reales) es aproximada —
+  // el cronograma real recalcula la tasa correcta en cada vencimiento según
+  // los días de calendario reales de cada tramo, que pueden diferir un poco
+  // de la referencia mes a mes.
   const tep = calcularTEP(tna, mesesPeriodo);
   const tea = calcularTEA(tep, mesesPeriodo);
   const tem = calcularTEM(tea);
@@ -2448,21 +2388,17 @@ const calcularPrestamo = () => {
   const fechasModificable = esModificable ? mesesCuotasModificable.map(m => fechaCuotaModificable(fechaObj, m)) : null;
 
   const capital = esModificable
-    ? calcularCapitalDesdeNeto(monto, lineaSeleccionadaActual, tep, cantidadCuotas, fechaObj, mesesPeriodo, gracia, false, tna, fechasModificable)
-    : esCampo
-      ? calcularCapitalDesdeNeto(monto, lineaSeleccionadaActual, tep, cantidadCuotas, fechaObj, mesesPeriodo, gracia, true, tna)
-      : calcularCapitalDesdeNeto(monto, lineaSeleccionadaActual, tep, cantidadCuotas, fechaObj, mesesPeriodo, gracia);
+    ? calcularCapitalDesdeNeto(monto, lineaSeleccionadaActual, tna, cantidadCuotas, fechaObj, mesesPeriodo, gracia, fechasModificable)
+    : calcularCapitalDesdeNeto(monto, lineaSeleccionadaActual, tna, cantidadCuotas, fechaObj, mesesPeriodo, gracia);
 
   cronogramaActual = esModificable
     ? generarCronogramaModificable(capital, tna, mesesCuotasModificable, fechaObj, gracia)
-    : esCampo
-      ? generarCronogramaCampo(capital, tna, cantidadCuotas, fechaObj, gracia)
-      : generarCronograma(capital, tep, cantidadCuotas, fechaObj, mesesPeriodo, gracia);
+    : generarCronograma(capital, tna, cantidadCuotas, fechaObj, mesesPeriodo, gracia);
   // La cuota "de referencia" que se muestra es la de una cuota normal (no la última,
   // que puede diferir por el cierre de redondeo) — se toma del propio cronograma para
   // garantizar que sea siempre consistente con lo que se ve en la tabla. Cuando las
-  // cuotas NO son todas iguales (Campo, Modificable, o cualquier caso con tramos de
-  // distinta duración) se muestra el PROMEDIO en vez de "la" cuota.
+  // cuotas NO son todas iguales (Modificable, o cualquier caso con tramos de distinta
+  // duración) se muestra el PROMEDIO en vez de "la" cuota.
   const cuotasNormales = cronogramaActual.filter(c => c.tipo === 'normal');
   const cuotaVariable = cuotaEsVariable(cronogramaActual);
   const cuota = cuotaVariable ? cuotaPromedioDe(cronogramaActual) : cuotasNormales[0].cuota;
@@ -2476,10 +2412,6 @@ const calcularPrestamo = () => {
   let diasPrimeraCuota;
   if (esModificable) {
     diasPrimeraCuota = Math.round((fechasModificable[gracia] - fechaObj) / (1000 * 60 * 60 * 24));
-  } else if (esCampo) {
-    // Reconstruye la fecha real (Date) de la primera cuota normal a partir del cronograma de Campo
-    const fechasCampo = generarFechasCampo(fechaObj, cantidadCuotas);
-    diasPrimeraCuota = Math.round((fechasCampo[gracia] - fechaObj) / (1000 * 60 * 60 * 24));
   } else {
     const indiceMesBase = indiceMesPrimeraCuota(fechaObj, mesesPeriodo);
     const fechaPrimeraNormal = fechaCuotaRegular(indiceMesBase, mesesPeriodo, gracia);
@@ -2492,7 +2424,7 @@ const calcularPrestamo = () => {
 
   simulacionActual = {
     id: Date.now(), fecha: new Date().toISOString(), tipo: 'prestamo',
-    cliente, clienteDisplay, cuit: cuitActual, moneda, monto, capital, tna, plazoMeses, mesesPeriodo, esCampo, esModificable, cuotasModificables: mesesCuotasModificable, cantidadCuotas, cuotaVariable,
+    cliente, clienteDisplay, cuit: cuitActual, moneda, monto, capital, tna, plazoMeses, mesesPeriodo, esModificable, cuotasModificables: mesesCuotasModificable, cantidadCuotas, cuotaVariable,
     fechaOtorg, gracia, cuota, tep, tea, tem, cft, totalIntereses, totalAbonado, diasPrimeraCuota,
     linea: lineaSeleccionadaActual ? lineaSeleccionadaActual.nombre : 'Sin línea',
     lineaData: lineaSeleccionadaActual,
@@ -2501,7 +2433,7 @@ const calcularPrestamo = () => {
 
   document.getElementById('lblCuota').textContent = cuotaVariable ? 'Cuota promedio' : 'Cuota';
   document.getElementById('resCuota').textContent = fmt(cuota, 2, moneda);
-  document.getElementById('resNCuotas').textContent = esCampo ? `${cantidadCuotas} cuotas (Campo)` : esModificable ? `${cantidadCuotas} cuota${cantidadCuotas === 1 ? '' : 's'} (Modificable)` : fraseCuotas(cantidadCuotas, mesesPeriodo);
+  document.getElementById('resNCuotas').textContent = esModificable ? `${cantidadCuotas} cuota${cantidadCuotas === 1 ? '' : 's'} (Modificable)` : fraseCuotas(cantidadCuotas, mesesPeriodo);
   document.getElementById('resTEM').textContent = fmtNum(tem) + '%';
   document.getElementById('resTEA').textContent = fmtNum(tea) + '%';
   document.getElementById('resCFT').textContent = fmtNum(cft) + '%';
@@ -2697,10 +2629,10 @@ const actualizarPropuesta = () => {
   document.getElementById('propLblTNA').textContent = 'TNA:';
   document.getElementById('propTNA').textContent = fmtNum(s.tna) + '%';
   document.getElementById('propLblPlazo').textContent = 'Plazo:';
-  document.getElementById('propPlazo').textContent = s.esCampo ? `${s.cantidadCuotas} cuotas (Campo)` : s.esModificable ? `${s.cantidadCuotas} cuota${s.cantidadCuotas === 1 ? '' : 's'} (Modificable)` : `${fraseCuotas(s.cantidadCuotas, s.mesesPeriodo)} (${s.plazoMeses} meses)`;
+  document.getElementById('propPlazo').textContent = s.esModificable ? `${s.cantidadCuotas} cuota${s.cantidadCuotas === 1 ? '' : 's'} (Modificable)` : `${fraseCuotas(s.cantidadCuotas, s.mesesPeriodo)} (${s.plazoMeses} meses)`;
   document.getElementById('propPeriodRow').classList.remove('hidden');
   document.getElementById('propLblPeriod').textContent = 'Periodicidad:';
-  document.getElementById('propPeriod').textContent = s.esCampo ? 'Campo (10/ene y 10/jun)' : s.esModificable ? 'Modificable' : periodTexto[s.mesesPeriodo];
+  document.getElementById('propPeriod').textContent = s.esModificable ? 'Modificable' : periodTexto[s.mesesPeriodo];
   document.getElementById('propLblGracia').textContent = 'Períodos gracia:';
   document.getElementById('propGracia').textContent = s.gracia;
   document.getElementById('propGraciaRow').classList.toggle('hidden', !s.gracia || s.gracia === 0);
@@ -2739,8 +2671,7 @@ const actualizarPropuestaWhatsapp = () => {
   document.getElementById('waTitulo').textContent = 'Tu préstamo';
   document.getElementById('waMonto').textContent = fmt(redondearPesos(s.monto), 0, s.moneda);
   document.getElementById('waSubtitulo').textContent = 'te quedan en mano';
-  const textoCuotasWa = s.esCampo ? (s.cantidadCuotas + ' cuota' + (s.cantidadCuotas === 1 ? '' : 's') + ' (Campo)')
-    : s.esModificable ? (s.cantidadCuotas + ' cuota' + (s.cantidadCuotas === 1 ? '' : 's') + ' (Modificable)')
+  const textoCuotasWa = s.esModificable ? (s.cantidadCuotas + ' cuota' + (s.cantidadCuotas === 1 ? '' : 's') + ' (Modificable)')
     : fraseCuotas(s.cantidadCuotas, s.mesesPeriodo);
   document.getElementById('waCuotas').textContent = `${textoCuotasWa}${s.cuotaVariable ? ', promedio' : ' de'} ${fmt(redondearPesos(s.cuota), 0, s.moneda)}`;
   if (s.gracia > 0 && s.diasPrimeraCuota) {
@@ -2981,10 +2912,9 @@ const verSimulacion = (id) => {
   document.getElementById('monto').value = sim.monto;
   document.getElementById('tna').value = sim.tna;
   document.getElementById('plazo').value = sim.plazoMeses;
-  document.getElementById('periodicidad').value = sim.esCampo ? 'campo' : sim.esModificable ? 'modificable' : sim.mesesPeriodo;
+  document.getElementById('periodicidad').value = sim.esModificable ? 'modificable' : sim.mesesPeriodo;
   document.getElementById('fecha').value = sim.fechaOtorg;
   document.getElementById('gracia').value = sim.gracia;
-  document.getElementById('ayudaPlazoCampo').classList.toggle('hidden', !sim.esCampo);
   document.getElementById('ayudaPlazoModificable').classList.toggle('hidden', !sim.esModificable);
   document.getElementById('simCuotasModificablesContainer').classList.toggle('hidden', !sim.esModificable);
   if (sim.esModificable) {
@@ -3021,7 +2951,7 @@ const verSimulacion = (id) => {
 
   document.getElementById('lblCuota').textContent = sim.cuotaVariable ? 'Cuota promedio' : 'Cuota';
   document.getElementById('resCuota').textContent = fmt(sim.cuota, 2, sim.moneda);
-  document.getElementById('resNCuotas').textContent = sim.esCampo ? `${sim.cantidadCuotas} cuotas (Campo)` : sim.esModificable ? `${sim.cantidadCuotas} cuota${sim.cantidadCuotas === 1 ? '' : 's'} (Modificable)` : fraseCuotas(sim.cantidadCuotas, sim.mesesPeriodo);
+  document.getElementById('resNCuotas').textContent = sim.esModificable ? `${sim.cantidadCuotas} cuota${sim.cantidadCuotas === 1 ? '' : 's'} (Modificable)` : fraseCuotas(sim.cantidadCuotas, sim.mesesPeriodo);
   document.getElementById('resTEM').textContent = fmtNum(sim.tem) + '%';
   document.getElementById('resTEA').textContent = fmtNum(sim.tea) + '%';
   document.getElementById('resCFT').textContent = fmtNum(sim.cft) + '%';
@@ -3412,7 +3342,6 @@ document.getElementById('btnCancelarLinea').addEventListener('click', cancelarEd
   document.getElementById(id).addEventListener('change', actualizarCapital);
 });
 document.getElementById('periodicidad').addEventListener('change', (e) => {
-  document.getElementById('ayudaPlazoCampo').classList.toggle('hidden', e.target.value !== 'campo');
   document.getElementById('ayudaPlazoModificable').classList.toggle('hidden', e.target.value !== 'modificable');
   document.getElementById('simCuotasModificablesContainer').classList.toggle('hidden', e.target.value !== 'modificable');
   if (e.target.value === 'modificable') sincronizarUltimaCuotaModificable();
