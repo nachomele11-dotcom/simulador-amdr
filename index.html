@@ -340,6 +340,11 @@
           <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
           Líneas de crédito
         </button>
+        <button class="nav-item" data-main-tab="historial">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          Historial de cambios
+          <span class="badge-historial hidden" style="background:var(--red-700); color:#fff; font-size:0.62rem; font-weight:700; min-width:16px; height:16px; border-radius:999px; display:inline-flex; align-items:center; justify-content:center; padding:0 4px; margin-left:auto;">0</span>
+        </button>
         <button class="nav-item" data-main-tab="guardadas">
           <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/></svg>
           Simulaciones guardadas
@@ -378,6 +383,7 @@
         <div class="flex gap-1 overflow-x-auto">
           <button class="nav-item active whitespace-nowrap" data-main-tab="simulador">Simulador</button>
           <button class="nav-item whitespace-nowrap" data-main-tab="lineas">Líneas</button>
+          <button class="nav-item whitespace-nowrap" data-main-tab="historial">Historial<span class="badge-historial hidden" style="background:var(--red-700); color:#fff; font-size:0.6rem; font-weight:700; min-width:15px; height:15px; border-radius:999px; display:inline-flex; align-items:center; justify-content:center; padding:0 3px; margin-left:4px;">0</span></button>
           <button class="nav-item whitespace-nowrap" data-main-tab="guardadas">Guardadas</button>
           <button class="nav-item whitespace-nowrap" data-main-tab="comparador">Comparador</button>
         </div>
@@ -918,6 +924,18 @@
       </main>
 
       <!-- ===================== MAIN: GUARDADAS ===================== -->
+      <main id="main-historial" class="main-content px-4 sm:px-6 py-5 hidden">
+        <div class="card p-4">
+          <div class="flex items-center justify-between flex-wrap gap-3 mb-5">
+            <div>
+              <h2 class="font-display text-base" style="font-weight:600;">Historial de cambios</h2>
+              <p class="text-xs mt-0.5" style="color:var(--ink-faint);">Cambios hechos en las líneas de crédito. Las líneas privadas solo aparecen acá si tenés acceso a ellas.</p>
+            </div>
+          </div>
+          <div id="listaHistorial" class="space-y-2"></div>
+        </div>
+      </main>
+
       <main id="main-guardadas" class="main-content px-4 sm:px-6 py-5 hidden">
         <div class="card p-4 mb-5">
           <div class="flex items-center justify-between flex-wrap gap-3">
@@ -1015,8 +1033,12 @@ let editandoLinea = null;
 let currentUser = null;       // { uid, email, nombre, rol }
 let lineasCache = [];
 let simulacionesCache = [];
+let historialCache = [];
+let historialVistoHasta = null; // ISO string: hasta cuándo este usuario ya vio el historial
 let unsubLineas = null;
 let unsubSimulaciones = null;
+let unsubHistorial = null;
+let unsubHistorialVisto = null;
 
 const esAdmin = () => currentUser && currentUser.rol === 'admin';
 
@@ -1102,7 +1124,7 @@ const db = firebase.firestore();
 // un admin marca una versión nueva como la única válida.
 // IMPORTANTE: subir este número cada vez que se entregue un archivo nuevo.
 // ============================================================
-const APP_VERSION = 51;
+const APP_VERSION = 54;
 let versionBloqueada = false;
 
 const verificarVersion = async () => {
@@ -1179,8 +1201,10 @@ const recuperarPassword = async () => {
 const cerrarSesion = async () => {
   if (unsubLineas) unsubLineas();
   if (unsubSimulaciones) unsubSimulaciones();
-  unsubLineas = null; unsubSimulaciones = null;
-  lineasCache = []; simulacionesCache = []; currentUser = null;
+  if (unsubHistorial) unsubHistorial();
+  if (unsubHistorialVisto) unsubHistorialVisto();
+  unsubLineas = null; unsubSimulaciones = null; unsubHistorial = null; unsubHistorialVisto = null;
+  lineasCache = []; simulacionesCache = []; historialCache = []; historialVistoHasta = null; currentUser = null;
   await auth.signOut();
 };
 
@@ -1189,12 +1213,25 @@ const suscribirDatos = (uid) => {
     lineasCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     mostrarLineas();
     cargarDropdownLineas();
+    renderHistorialCambios(); // la visibilidad del historial depende de lineasCache
   }, err => showToast('Error leyendo líneas: ' + err.message, 'error'));
 
   unsubSimulaciones = db.collection('simulaciones').where('ownerId', '==', uid).onSnapshot(snap => {
     simulacionesCache = snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (b.fecha || '').localeCompare(a.fecha || ''));
     cargarListaGuardadas();
   }, err => showToast('Error leyendo simulaciones: ' + err.message, 'error'));
+
+  unsubHistorial = db.collection('historialLineas').orderBy('fecha', 'desc').limit(300).onSnapshot(snap => {
+    historialCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    renderHistorialCambios();
+    actualizarBadgeHistorial();
+  }, err => showToast('Error leyendo historial: ' + err.message, 'error'));
+
+  // Doc propio (1 por usuario) que guarda hasta cuándo vio el historial de cambios.
+  unsubHistorialVisto = db.collection('historialVisto').doc(uid).onSnapshot(doc => {
+    historialVistoHasta = doc.exists ? doc.data().hasta : null;
+    actualizarBadgeHistorial();
+  }, err => console.error('Error leyendo historialVisto:', err));
 };
 
 const aplicarUIRol = () => {
@@ -1498,6 +1535,162 @@ const cancelarEdicionLinea = () => {
   document.getElementById('btnCancelarLinea').classList.add('hidden');
 };
 
+// ============================================================
+// HISTORIAL DE CAMBIOS DE LÍNEAS
+// ============================================================
+// Qué campos comparar y cómo describirlos en español, por tipo de línea.
+const CAMPOS_HISTORIAL_PRESTAMO = [
+  { key: 'tna', label: 'la TNA', tipo: 'pct' },
+  { key: 'sellado', label: 'el sellado provincial', tipo: 'pct' },
+  { key: 'gastoOtorg', label: 'el gasto de otorgamiento', tipo: 'pct' },
+  { key: 'selladoSolic', label: 'el sellado de solicitud', tipo: 'monto' },
+  { key: 'segVida', label: 'el seguro de vida', tipo: 'onoff' },
+  { key: 'segVidaPorc', label: 'el % de seguro de vida', tipo: 'pct' },
+  { key: 'iva', label: 'el IVA sobre gastos', tipo: 'pct' },
+  { key: 'moneda', label: 'la moneda', tipo: 'texto' },
+];
+const CAMPOS_HISTORIAL_CHEQUE = [
+  { key: 'selladoPct', label: 'el sellado provincial', tipo: 'pct' },
+  { key: 'gastoAdminPct', label: 'el gasto administrativo', tipo: 'pct' },
+  { key: 'selladoSolic', label: 'el sellado de solicitud', tipo: 'monto' },
+  { key: 'gastoFijoCheque', label: 'el gasto fijo por cheque', tipo: 'monto' },
+  { key: 'gastoFijoMinimo', label: 'el gasto fijo mínimo', tipo: 'monto' },
+  { key: 'moneda', label: 'la moneda', tipo: 'texto' },
+];
+
+const formatearValorHistorial = (v, tipo) => {
+  if (v === undefined || v === null || v === '') return 'sin definir';
+  if (tipo === 'pct') return `${fmtNum(v)}%`;
+  if (tipo === 'monto') return fmt(v);
+  if (tipo === 'onoff') return v === 'S' ? 'activado' : 'desactivado';
+  return String(v);
+};
+
+// Compara la línea vieja contra la nueva y arma una frase tipo "bajó el gasto
+// administrativo de 3% a 1% y la TNA de 55% a 50%". Si no había línea vieja
+// (alta nueva), devuelve un texto de creación en vez de un diff.
+const generarResumenCambios = (viejo, nuevo) => {
+  if (!viejo) return `Línea creada${nuevo.visibilidad === 'privada' ? ' (privada)' : ''}, ${nuevo.tipo === 'cheque' ? 'TNA por tramos' : (nuevo.tna ? `TNA ${fmtNum(nuevo.tna)}%` : 'TNA por tramos')}`;
+
+  const campos = nuevo.tipo === 'cheque' ? CAMPOS_HISTORIAL_CHEQUE : CAMPOS_HISTORIAL_PRESTAMO;
+  const partes = [];
+  if (viejo.nombre !== nuevo.nombre) partes.push(`se renombró de "${viejo.nombre}" a "${nuevo.nombre}"`);
+
+  campos.forEach(({ key, label, tipo }) => {
+    const a = viejo[key], b = nuevo[key];
+    if (a === b) return;
+    if ((a === undefined || a === null || a === '') && (b === undefined || b === null || b === '')) return;
+    if ((tipo === 'pct' || tipo === 'monto') && typeof a === 'number' && typeof b === 'number') {
+      const verbo = b > a ? 'subió' : 'bajó';
+      partes.push(`${verbo} ${label} de ${formatearValorHistorial(a, tipo)} a ${formatearValorHistorial(b, tipo)}`);
+    } else {
+      partes.push(`cambió ${label} de ${formatearValorHistorial(a, tipo)} a ${formatearValorHistorial(b, tipo)}`);
+    }
+  });
+
+  // Tramos de TNA (arrays): préstamo con tramos por plazo, o cheque con tramos por días.
+  // Si es un único tramo y solo cambió la TNA (no el rango), se detalla igual que
+  // cualquier otro campo numérico; si cambiaron rangos o hay varios tramos, mensaje genérico.
+  const campoTramos = nuevo.tipo === 'cheque' ? 'tramos' : 'tramosTNA';
+  const tramosViejos = viejo[campoTramos] || [];
+  const tramosNuevos = nuevo[campoTramos] || [];
+  if (JSON.stringify(tramosViejos) !== JSON.stringify(tramosNuevos)) {
+    if (tramosViejos.length === 1 && tramosNuevos.length === 1
+        && tramosViejos[0].desde === tramosNuevos[0].desde && tramosViejos[0].hasta === tramosNuevos[0].hasta
+        && tramosViejos[0].tna !== tramosNuevos[0].tna) {
+      const verbo = tramosNuevos[0].tna > tramosViejos[0].tna ? 'subió' : 'bajó';
+      partes.push(`${verbo} la TNA de ${formatearValorHistorial(tramosViejos[0].tna, 'pct')} a ${formatearValorHistorial(tramosNuevos[0].tna, 'pct')}`);
+    } else {
+      partes.push('se modificaron los tramos de TNA');
+    }
+  }
+
+  if (viejo.visibilidad !== nuevo.visibilidad) {
+    partes.push(`pasó a ser ${nuevo.visibilidad === 'privada' ? 'privada' : 'pública'}`);
+  }
+
+  if (partes.length === 0) return 'Se guardó sin cambios detectados';
+  const resumen = partes.join('; ');
+  return resumen.charAt(0).toUpperCase() + resumen.slice(1);
+};
+
+// Quién podía ver cada entrada SE DECIDE EN EL MOMENTO DEL CAMBIO (queda guardado
+// en la propia entrada: visibilidadEnMomento / usuariosPermitidosEnMomento), no
+// según el estado actual de la línea — así, si después se la vuelve privada, se le
+// saca acceso a alguien, o directamente se borra, la gente que sí tenía acceso
+// cuando pasó el cambio lo sigue viendo. Los admin ven siempre todo.
+// Entradas viejas (de antes de este cambio) no tienen esos campos guardados: para
+// esas se cae al criterio anterior (estado actual de la línea) como compatibilidad.
+const historialVisible = () => historialCache.filter(h => {
+  if (esAdmin()) return true;
+  if (h.visibilidadEnMomento !== undefined) {
+    if (h.visibilidadEnMomento !== 'privada') return true;
+    return (h.usuariosPermitidosEnMomento || []).includes(currentUser.uid);
+  }
+  const linea = lineasCache.find(l => l.id === h.lineaId);
+  if (!linea) return false;
+  if (linea.visibilidad !== 'privada') return true;
+  return (linea.usuariosPermitidos || []).includes(currentUser.uid);
+});
+
+// Cantidad de entradas visibles para este usuario que pasaron DESPUÉS de la
+// última vez que abrió la pestaña de Historial (o todas, si nunca la abrió).
+const contarHistorialNoVisto = () => {
+  const visibles = historialVisible();
+  if (!historialVistoHasta) return visibles.length;
+  return visibles.filter(h => h.fecha > historialVistoHasta).length;
+};
+
+const actualizarBadgeHistorial = () => {
+  if (!currentUser) return;
+  const n = contarHistorialNoVisto();
+  document.querySelectorAll('.badge-historial').forEach(b => {
+    b.textContent = n > 99 ? '99+' : String(n);
+    b.classList.toggle('hidden', n === 0);
+  });
+};
+
+// Se llama al entrar a la pestaña de Historial: marca todo lo visible hasta
+// ahora como "visto" (queda guardado en Firestore, así se sincroniza entre
+// dispositivos) y apaga el circulito.
+const marcarHistorialVisto = async () => {
+  if (!currentUser) return;
+  const ahora = new Date().toISOString();
+  historialVistoHasta = ahora; // optimista, para que el circulito baje al toque
+  actualizarBadgeHistorial();
+  try {
+    await db.collection('historialVisto').doc(currentUser.uid).set({ hasta: ahora }, { merge: true });
+  } catch (err) {
+    console.error('No se pudo guardar historialVisto:', err);
+  }
+};
+
+const renderHistorialCambios = () => {
+  const cont = document.getElementById('listaHistorial');
+  if (!cont || !currentUser) return;
+  const entradas = historialVisible();
+  if (entradas.length === 0) {
+    cont.innerHTML = `<p class="text-sm text-center py-8" style="color:var(--ink-faint);">Todavía no hay cambios registrados.</p>`;
+    return;
+  }
+  cont.innerHTML = entradas.map(h => {
+    const linea = lineasCache.find(l => l.id === h.lineaId);
+    const esPrivada = linea ? linea.visibilidad === 'privada' : false;
+    const fecha = h.fecha ? new Date(h.fecha).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
+    const badges = { creacion: ['Línea creada', 'var(--green-700)'], eliminacion: ['Línea eliminada', 'var(--red-700)'], edicion: ['Editada', 'var(--purple-700)'] };
+    const [badgeTexto, badgeColor] = badges[h.accion] || badges.edicion;
+    return `
+      <div class="p-3 rounded-lg" style="border:1px solid var(--line);">
+        <div class="flex items-center justify-between flex-wrap gap-2 mb-1">
+          <span class="text-sm font-semibold">${esPrivada ? '🔒 ' : ''}${h.lineaNombre}${!linea ? ' <span style="color:var(--ink-faint); font-weight:400;">(línea eliminada)</span>' : ''}</span>
+          <span class="text-[0.65rem] px-2 py-0.5 rounded-full font-semibold" style="background:${badgeColor}; color:#fff;">${badgeTexto}</span>
+        </div>
+        <p class="text-xs" style="color:var(--ink-soft);">${h.resumen}</p>
+        <p class="text-[0.68rem] mt-1" style="color:var(--ink-faint);">${h.usuarioNombre || h.usuario} · ${fecha}</p>
+      </div>`;
+  }).join('');
+};
+
 const guardarLinea = async () => {
   if (!esAdmin()) return showToast('Solo un administrador puede editar líneas', 'error');
   const nombre = document.getElementById('lineaNombre').value.trim();
@@ -1563,10 +1756,32 @@ const guardarLinea = async () => {
     : [];
 
   try {
+    const lineaAnterior = editandoLinea ? lineasCache.find(l => l.id === editandoLinea) : null;
+    const resumen = generarResumenCambios(lineaAnterior, linea);
+    let lineaIdGuardada;
     if (editandoLinea) {
       await db.collection('lineas').doc(editandoLinea).set(linea);
+      lineaIdGuardada = editandoLinea;
     } else {
-      await db.collection('lineas').add(linea);
+      const ref = await db.collection('lineas').add(linea);
+      lineaIdGuardada = ref.id;
+    }
+    // El historial no bloquea el guardado de la línea si falla por algún motivo.
+    try {
+      await db.collection('historialLineas').add({
+        lineaId: lineaIdGuardada,
+        lineaNombre: linea.nombre,
+        tipo: linea.tipo,
+        accion: lineaAnterior ? 'edicion' : 'creacion',
+        usuario: currentUser.email,
+        usuarioNombre: currentUser.nombre || currentUser.email,
+        fecha: new Date().toISOString(),
+        resumen,
+        visibilidadEnMomento: linea.visibilidad,
+        usuariosPermitidosEnMomento: linea.usuariosPermitidos || []
+      });
+    } catch (errHist) {
+      console.error('No se pudo registrar el historial de cambios:', errHist);
     }
     cancelarEdicionLinea();
     showToast('Línea guardada correctamente', 'success');
@@ -1578,8 +1793,27 @@ const guardarLinea = async () => {
 const eliminarLinea = async (id) => {
   if (!esAdmin()) return showToast('Solo un administrador puede eliminar líneas', 'error');
   if (!confirm('¿Eliminar esta línea?')) return;
+  const linea = lineasCache.find(l => l.id === id);
   try {
     await db.collection('lineas').doc(id).delete();
+    if (linea) {
+      try {
+        await db.collection('historialLineas').add({
+          lineaId: id,
+          lineaNombre: linea.nombre,
+          tipo: linea.tipo,
+          accion: 'eliminacion',
+          usuario: currentUser.email,
+          usuarioNombre: currentUser.nombre || currentUser.email,
+          fecha: new Date().toISOString(),
+          resumen: `Línea eliminada${linea.visibilidad === 'privada' ? ' (era privada)' : ''}`,
+          visibilidadEnMomento: linea.visibilidad,
+          usuariosPermitidosEnMomento: linea.usuariosPermitidos || []
+        });
+      } catch (errHist) {
+        console.error('No se pudo registrar el historial de cambios:', errHist);
+      }
+    }
     showToast('Línea eliminada', 'info');
   } catch (err) {
     showToast('No se pudo eliminar: ' + err.message, 'error');
@@ -3291,6 +3525,7 @@ document.querySelectorAll('.nav-item[data-main-tab]').forEach(btn => {
     document.querySelectorAll('.main-content').forEach(c => c.classList.add('hidden'));
     document.getElementById(`main-${tabName}`).classList.remove('hidden');
     if (tabName === 'comparador') { poblarLineasComparador(); if (plazosComparadorActuales.length === 0) plazosComparadorActuales = [6,12,18,24,36]; renderPlazosComparador(); }
+    if (tabName === 'historial') { renderHistorialCambios(); marcarHistorialVisto(); }
     window.scrollTo({ top: 0, behavior: 'instant' });
   });
 });
