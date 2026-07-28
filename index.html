@@ -1144,7 +1144,7 @@ const db = firebase.firestore();
 // un admin marca una versión nueva como la única válida.
 // IMPORTANTE: subir este número cada vez que se entregue un archivo nuevo.
 // ============================================================
-const APP_VERSION = 58;
+const APP_VERSION = 59;
 let versionBloqueada = false;
 
 const verificarVersion = async () => {
@@ -1234,6 +1234,7 @@ const suscribirDatos = (uid) => {
     lineasCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     mostrarLineas();
     cargarDropdownLineas();
+    poblarLineasComparador(); // si el usuario ya está parado en Comparador (ej. por auto-redirección al loguearse antes de que esto cargue), se refresca solo
     renderHistorialCambios(); // la visibilidad del historial depende de lineasCache
   }, err => showToast('Error leyendo líneas: ' + err.message, 'error'));
 
