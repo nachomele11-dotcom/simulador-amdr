@@ -1035,10 +1035,6 @@
     </div><!-- /main-scroll -->
   </div><!-- /app-shell -->
 
-  <div id="banner-nueva-version" class="hidden" style="position:fixed; top:0; left:0; right:0; z-index:200; background:var(--purple-900); color:#fff; padding:10px 16px; display:flex; align-items:center; justify-content:center; gap:14px; font-size:0.85rem; text-align:center; box-shadow:0 2px 10px rgba(0,0,0,0.25);">
-    <span>🔄 Hay una versión más nueva del simulador. Guardá lo que estés haciendo y actualizá.</span>
-    <button id="btnRecargarVersion" style="background:#fff; color:var(--purple-900); padding:5px 14px; border-radius:6px; font-weight:600; font-size:0.78rem; flex-shrink:0;">Actualizar ahora</button>
-  </div>
   <div id="toast-container" class="fixed top-4 right-4 z-50 space-y-2"></div>
   </div><!-- /app-root -->
 
@@ -1063,7 +1059,6 @@ let unsubSimulaciones = null;
 let unsubHistorial = null;
 let unsubHistorialVisto = null;
 let unsubUsuarios = null;
-let unsubVersionLive = null;
 
 const esAdmin = () => currentUser && currentUser.rol === 'admin';
 
@@ -1149,7 +1144,7 @@ const db = firebase.firestore();
 // un admin marca una versión nueva como la única válida.
 // IMPORTANTE: subir este número cada vez que se entregue un archivo nuevo.
 // ============================================================
-const APP_VERSION = 62;
+const APP_VERSION = 63;
 let versionBloqueada = false;
 
 const verificarVersion = async () => {
@@ -1229,24 +1224,12 @@ const cerrarSesion = async () => {
   if (unsubHistorial) unsubHistorial();
   if (unsubHistorialVisto) unsubHistorialVisto();
   if (unsubUsuarios) unsubUsuarios();
-  if (unsubVersionLive) unsubVersionLive();
-  unsubLineas = null; unsubSimulaciones = null; unsubHistorial = null; unsubHistorialVisto = null; unsubUsuarios = null; unsubVersionLive = null;
+  unsubLineas = null; unsubSimulaciones = null; unsubHistorial = null; unsubHistorialVisto = null; unsubUsuarios = null;
   lineasCache = []; simulacionesCache = []; historialCache = []; usuariosCache = []; historialVistoHasta = null; currentUser = null;
-  document.getElementById('banner-nueva-version').classList.add('hidden');
   await auth.signOut();
 };
 
 const suscribirDatos = (uid) => {
-  // Chequeo de versión EN VIVO: si mientras alguien ya está adentro se marca una
-  // versión mínima más nueva que la que tiene cargada, le avisa con un banner (no
-  // le cierra la sesión ni le interrumpe lo que esté haciendo, a diferencia del
-  // chequeo de versión al loguearse, que si bloquea el acceso).
-  unsubVersionLive = db.collection('config').doc('appVersion').onSnapshot(doc => {
-    if (!doc.exists) return;
-    const minVersion = doc.data().minVersion || 1;
-    document.getElementById('banner-nueva-version').classList.toggle('hidden', APP_VERSION >= minVersion);
-  }, err => console.error('Error leyendo config/appVersion en vivo:', err));
-
   unsubLineas = db.collection('lineas').orderBy('nombre').onSnapshot(snap => {
     lineasCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     mostrarLineas();
@@ -1364,12 +1347,6 @@ document.getElementById('btnLogout').addEventListener('click', cerrarSesion);
 document.getElementById('btnLogoutMobile').addEventListener('click', cerrarSesion);
 document.getElementById('versionActualLabel').textContent = 'v' + APP_VERSION;
 document.getElementById('btnMarcarVersion').addEventListener('click', marcarVersionActual);
-// location.reload() a veces sirve una copia cacheada por el navegador, no la
-// última versión real del archivo. Navegar a la misma URL con un parámetro
-// único fuerza al navegador a pedirla de nuevo al servidor sí o sí.
-document.getElementById('btnRecargarVersion').addEventListener('click', () => {
-  window.location.href = window.location.origin + window.location.pathname + '?actualizado=' + Date.now();
-});
 
 // ============================================================
 // GESTIÓN DE LÍNEAS (Firestore: colección "lineas")
