@@ -1144,7 +1144,7 @@ const db = firebase.firestore();
 // un admin marca una versión nueva como la única válida.
 // IMPORTANTE: subir este número cada vez que se entregue un archivo nuevo.
 // ============================================================
-const APP_VERSION = 57;
+const APP_VERSION = 58;
 let versionBloqueada = false;
 
 const verificarVersion = async () => {
@@ -1766,6 +1766,11 @@ const renderHistorialCambios = () => {
 // ============================================================
 // CONFIGURACIÓN DE USUARIOS (rol, módulos y líneas visibles)
 // ============================================================
+// Cuenta "dueña" de la app: ningún otro admin puede tocarla desde acá (rol,
+// estado, módulos ni líneas) — solo Ignacio puede editarse a sí mismo. Así
+// nadie más le puede sacar acceso por error o a propósito.
+const UID_PROTEGIDO = 'GOmLu7cVXjYZsEC0Xq2J0nFqHhn1'; // nachomele11@gmail.com
+
 const MODULOS_CONFIG = [
   { key: 'simulador', label: 'Simulador' },
   { key: 'comparador', label: 'Comparador de cuotas' },
@@ -1839,6 +1844,9 @@ const reenviarResetConfig = async (email) => {
 const guardarConfigUsuario = async (uid) => {
   const b = borradoresConfig[uid];
   if (!b) return;
+  if (uid === UID_PROTEGIDO && currentUser.uid !== UID_PROTEGIDO) {
+    return showToast('Esta cuenta está protegida, solo su dueño la puede editar', 'error');
+  }
   if (uid === currentUser.uid && b.rol !== 'admin') {
     return showToast('No podés sacarte el rol de admin a vos mismo', 'error');
   }
@@ -1859,6 +1867,15 @@ const guardarConfigUsuario = async (uid) => {
 const renderDetalleConfigUsuario = (u) => {
   const b = borradoresConfig[u.uid];
   const esUnoMismo = u.uid === currentUser.uid;
+  const esProtegidaPorOtro = u.uid === UID_PROTEGIDO && !esUnoMismo;
+
+  if (esProtegidaPorOtro) {
+    return `
+      <div class="pt-3 text-xs" style="border-top:1px solid var(--line); color:var(--ink-faint);">
+        🔒 Esta es la cuenta dueña de la app — solo su propio usuario puede editar su rol, estado, módulos o líneas. Nadie más puede tocarla desde acá.
+      </div>`;
+  }
+
   const modulosHtml = MODULOS_CONFIG.map(m => `
     <label class="flex items-center gap-2 text-xs py-0.5">
       <input type="checkbox" ${!b.modulosOcultos.includes(m.key) ? 'checked' : ''} onchange="toggleModuloConfig('${u.uid}','${m.key}', this.checked)">
@@ -1916,11 +1933,12 @@ const renderConfigUsuarios = () => {
   cont.innerHTML = usuariosCache.map(u => {
     const abierto = usuarioConfigAbierto === u.uid;
     const badgeInactivo = u.activo === false ? `<span style="background:var(--red-700); color:#fff; font-size:0.62rem; font-weight:600; padding:1px 7px; border-radius:99px; margin-left:6px;">Inactivo</span>` : '';
+    const candado = u.uid === UID_PROTEGIDO ? ' 🔒' : '';
     return `
       <div class="rounded-lg" style="border:1px solid var(--line);">
         <button type="button" class="w-full flex items-center justify-between gap-3 p-3 text-left" onclick="toggleDetalleConfigUsuario('${u.uid}')">
           <div class="min-w-0">
-            <p class="text-sm font-semibold" style="color:var(--ink);">${u.nombre || u.email}${badgeInactivo}</p>
+            <p class="text-sm font-semibold" style="color:var(--ink);">${u.nombre || u.email}${candado}${badgeInactivo}</p>
             <p class="text-xs truncate" style="color:var(--ink-faint);">${u.email} · ${u.rol || 'vendedor'}</p>
           </div>
           <span style="color:var(--ink-faint); flex-shrink:0;">${abierto ? '▲' : '▼'}</span>
