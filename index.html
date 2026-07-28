@@ -353,6 +353,10 @@
           <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
           Líneas de crédito
         </button>
+        <button class="nav-item solo-admin hidden" data-main-tab="config">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+          Configuración
+        </button>
       </nav>
       <div id="sidebar-user" class="px-3 py-3 mx-2 mb-1 rounded-lg" style="background:rgba(255,255,255,0.07);">
         <p id="userNombre" class="text-sm font-semibold text-white truncate">—</p>
@@ -386,6 +390,7 @@
           <button class="nav-item whitespace-nowrap" data-main-tab="guardadas">Guardadas</button>
           <button class="nav-item whitespace-nowrap" data-main-tab="historial">Historial<span class="badge-historial hidden" style="background:var(--red-700); color:#fff; font-size:0.6rem; font-weight:700; min-width:15px; height:15px; border-radius:999px; display:inline-flex; align-items:center; justify-content:center; padding:0 3px; margin-left:4px;">0</span></button>
           <button class="nav-item whitespace-nowrap" data-main-tab="lineas">Líneas</button>
+          <button class="nav-item solo-admin hidden whitespace-nowrap" data-main-tab="config">Config.</button>
         </div>
         <button id="btnLogoutMobile" class="text-[0.7rem] whitespace-nowrap pl-2" style="color:#D9CBDF;">Salir</button>
       </div>
@@ -923,6 +928,19 @@
         </div>
       </main>
 
+      <!-- ===================== MAIN: CONFIGURACIÓN ===================== -->
+      <main id="main-config" class="main-content px-4 sm:px-6 py-5 hidden">
+        <div class="card p-4">
+          <div class="flex items-center justify-between flex-wrap gap-3 mb-5">
+            <div>
+              <h2 class="font-display text-base" style="font-weight:600;">Configuración de usuarios</h2>
+              <p class="text-xs mt-0.5" style="color:var(--ink-faint);">Rol, módulos y líneas visibles para cada usuario.</p>
+            </div>
+          </div>
+          <div id="listaConfigUsuarios" class="space-y-2"></div>
+        </div>
+      </main>
+
       <!-- ===================== MAIN: GUARDADAS ===================== -->
       <main id="main-historial" class="main-content px-4 sm:px-6 py-5 hidden">
         <div class="card p-4">
@@ -1034,11 +1052,13 @@ let currentUser = null;       // { uid, email, nombre, rol }
 let lineasCache = [];
 let simulacionesCache = [];
 let historialCache = [];
+let usuariosCache = [];
 let historialVistoHasta = null; // ISO string: hasta cuándo este usuario ya vio el historial
 let unsubLineas = null;
 let unsubSimulaciones = null;
 let unsubHistorial = null;
 let unsubHistorialVisto = null;
+let unsubUsuarios = null;
 
 const esAdmin = () => currentUser && currentUser.rol === 'admin';
 
@@ -1124,7 +1144,7 @@ const db = firebase.firestore();
 // un admin marca una versión nueva como la única válida.
 // IMPORTANTE: subir este número cada vez que se entregue un archivo nuevo.
 // ============================================================
-const APP_VERSION = 55;
+const APP_VERSION = 56;
 let versionBloqueada = false;
 
 const verificarVersion = async () => {
@@ -1203,8 +1223,9 @@ const cerrarSesion = async () => {
   if (unsubSimulaciones) unsubSimulaciones();
   if (unsubHistorial) unsubHistorial();
   if (unsubHistorialVisto) unsubHistorialVisto();
-  unsubLineas = null; unsubSimulaciones = null; unsubHistorial = null; unsubHistorialVisto = null;
-  lineasCache = []; simulacionesCache = []; historialCache = []; historialVistoHasta = null; currentUser = null;
+  if (unsubUsuarios) unsubUsuarios();
+  unsubLineas = null; unsubSimulaciones = null; unsubHistorial = null; unsubHistorialVisto = null; unsubUsuarios = null;
+  lineasCache = []; simulacionesCache = []; historialCache = []; usuariosCache = []; historialVistoHasta = null; currentUser = null;
   await auth.signOut();
 };
 
@@ -1232,6 +1253,29 @@ const suscribirDatos = (uid) => {
     historialVistoHasta = doc.exists ? doc.data().hasta : null;
     actualizarBadgeHistorial();
   }, err => console.error('Error leyendo historialVisto:', err));
+
+  // Escucha TODOS los usuarios (las reglas ya permiten leer a cualquiera logueado):
+  // alimenta el panel de Configuración para admins, y de paso aplica en vivo
+  // cualquier cambio de permisos sobre uno mismo (rol, módulos, líneas, activo/inactivo)
+  // sin necesidad de volver a loguearse.
+  unsubUsuarios = db.collection('usuarios').orderBy('nombre').onSnapshot(snap => {
+    usuariosCache = snap.docs.map(d => ({ uid: d.id, ...d.data() }));
+    const yo = usuariosCache.find(u => u.uid === uid);
+    if (yo) {
+      if (yo.activo === false) {
+        showToast('Tu cuenta fue desactivada por un administrador', 'error');
+        cerrarSesion();
+        return;
+      }
+      currentUser = { ...currentUser, ...yo, uid };
+      aplicarUIRol();
+      mostrarLineas();
+      cargarDropdownLineas();
+      renderHistorialCambios();
+      actualizarBadgeHistorial();
+    }
+    if (esAdmin()) renderConfigUsuarios();
+  }, err => console.error('Error leyendo usuarios:', err));
 };
 
 const aplicarUIRol = () => {
@@ -1242,6 +1286,22 @@ const aplicarUIRol = () => {
   badge.style.background = admin ? 'var(--amber-600)' : 'rgba(255,255,255,0.18)';
   document.querySelectorAll('.solo-admin').forEach(el => el.classList.toggle('hidden', !admin));
   document.getElementById('lineas-readonly-msg').classList.toggle('hidden', admin);
+
+  // Módulos ocultos para este usuario en particular (armado desde Configuración).
+  // "config" nunca se oculta así — ya lo tapa .solo-admin de por sí.
+  const modulosOcultos = currentUser.modulosOcultos || [];
+  let tabActivaQuedoOculta = false;
+  document.querySelectorAll('[data-main-tab]').forEach(btn => {
+    const tab = btn.dataset.mainTab;
+    if (tab === 'config') return;
+    const oculto = modulosOcultos.includes(tab);
+    btn.classList.toggle('hidden', oculto);
+    if (oculto && btn.classList.contains('active')) tabActivaQuedoOculta = true;
+  });
+  if (tabActivaQuedoOculta) {
+    const primeraVisible = document.querySelector('[data-main-tab]:not(.hidden)');
+    if (primeraVisible) primeraVisible.click();
+  }
 };
 
 verificarVersion().then(() => {
@@ -1252,6 +1312,11 @@ auth.onAuthStateChanged(async (user) => {
       const doc = await db.collection('usuarios').doc(user.uid).get();
       if (!doc.exists) {
         mostrarError('Tu usuario no tiene perfil configurado. Pedile a un admin que te dé de alta.');
+        await auth.signOut();
+        return;
+      }
+      if (doc.data().activo === false) {
+        mostrarError('Tu cuenta está desactivada. Pedile a un admin que te la reactive.');
         await auth.signOut();
         return;
       }
@@ -1289,11 +1354,17 @@ document.getElementById('btnMarcarVersion').addEventListener('click', marcarVers
 // lista de usuarios permitidos. Como esta función alimenta tanto la pestaña
 // de Líneas de crédito como el Simulador y el Comparador de cuotas, filtrando
 // acá el efecto se aplica en los 3 lugares a la vez.
-const cargarLineas = () => lineasCache.filter(l => {
+// Si el usuario tiene un override manual (lineasVisiblesOverride, armado desde
+// Configuración), ese override REEMPLAZA por completo la regla automática de
+// arriba — es la lista exacta y completa de lo que puede ver, sea pública o
+// privada. Sin override, se aplica la regla automática de siempre.
+const lineaVisibleParaUsuario = (l, usuario) => {
+  if (usuario.lineasVisiblesOverride) return usuario.lineasVisiblesOverride.includes(l.id);
   if (l.visibilidad !== 'privada') return true;
   const permitidos = l.usuariosPermitidos || [];
-  return permitidos.includes(currentUser.uid);
-});
+  return permitidos.includes(usuario.uid);
+};
+const cargarLineas = () => lineasCache.filter(l => lineaVisibleParaUsuario(l, currentUser));
 
 
 const cargarDropdownLineas = () => {
@@ -1623,6 +1694,7 @@ const generarResumenCambios = (viejo, nuevo) => {
 // esas se cae al criterio anterior (estado actual de la línea) como compatibilidad.
 const historialVisible = () => historialCache.filter(h => {
   if (esAdmin()) return true;
+  if (currentUser.lineasVisiblesOverride) return currentUser.lineasVisiblesOverride.includes(h.lineaId);
   if (h.visibilidadEnMomento !== undefined) {
     if (h.visibilidadEnMomento !== 'privada') return true;
     return (h.usuariosPermitidosEnMomento || []).includes(currentUser.uid);
@@ -1687,6 +1759,173 @@ const renderHistorialCambios = () => {
         </div>
         <p class="text-xs" style="color:var(--ink-soft);">${h.resumen}</p>
         <p class="text-[0.68rem] mt-1" style="color:var(--ink-faint);">${h.usuarioNombre || h.usuario} · ${fecha}</p>
+      </div>`;
+  }).join('');
+};
+
+// ============================================================
+// CONFIGURACIÓN DE USUARIOS (rol, módulos y líneas visibles)
+// ============================================================
+const MODULOS_CONFIG = [
+  { key: 'simulador', label: 'Simulador' },
+  { key: 'comparador', label: 'Comparador de cuotas' },
+  { key: 'guardadas', label: 'Simulaciones guardadas' },
+  { key: 'historial', label: 'Historial de cambios' },
+  { key: 'lineas', label: 'Líneas de crédito' },
+];
+
+let borradoresConfig = {};      // uid -> borrador en edición (no se guarda hasta tocar "Guardar")
+let usuarioConfigAbierto = null; // uid actualmente desplegado, o null si no hay ninguno abierto
+
+// Arma el borrador inicial de un usuario a partir de su estado real guardado.
+// Para las líneas: si no tiene override, el "punto de partida" al pasar a modo
+// personalizado es exactamente lo que hoy ve automáticamente (así el admin edita
+// desde una base conocida, no desde cero).
+const iniciarBorradorConfig = (u) => {
+  borradoresConfig[u.uid] = {
+    rol: u.rol || 'vendedor',
+    activo: u.activo !== false,
+    modulosOcultos: [...(u.modulosOcultos || [])],
+    modoAutomatico: !u.lineasVisiblesOverride,
+    lineasVisiblesOverride: u.lineasVisiblesOverride
+      ? [...u.lineasVisiblesOverride]
+      : lineasCache.filter(l => lineaVisibleParaUsuario(l, u)).map(l => l.id)
+  };
+};
+
+const toggleDetalleConfigUsuario = (uid) => {
+  usuarioConfigAbierto = usuarioConfigAbierto === uid ? null : uid;
+  if (usuarioConfigAbierto) {
+    const u = usuariosCache.find(x => x.uid === uid);
+    if (u) iniciarBorradorConfig(u);
+  }
+  renderConfigUsuarios();
+};
+
+const toggleModuloConfig = (uid, key, visible) => {
+  const b = borradoresConfig[uid];
+  if (!b) return;
+  b.modulosOcultos = visible ? b.modulosOcultos.filter(k => k !== key) : [...new Set([...b.modulosOcultos, key])];
+};
+
+const toggleLineaConfig = (uid, lineaId, visible) => {
+  const b = borradoresConfig[uid];
+  if (!b) return;
+  b.lineasVisiblesOverride = visible
+    ? [...new Set([...b.lineasVisiblesOverride, lineaId])]
+    : b.lineasVisiblesOverride.filter(id => id !== lineaId);
+};
+
+const toggleModoAutomaticoConfig = (uid, automatico) => {
+  const b = borradoresConfig[uid];
+  if (!b) return;
+  b.modoAutomatico = automatico;
+  if (automatico) {
+    const u = usuariosCache.find(x => x.uid === uid);
+    b.lineasVisiblesOverride = lineasCache.filter(l => lineaVisibleParaUsuario(l, u)).map(l => l.id);
+  }
+  renderConfigUsuarios();
+};
+
+const reenviarResetConfig = async (email) => {
+  try {
+    await auth.sendPasswordResetEmail(email);
+    showToast('Mail de restablecimiento enviado a ' + email, 'success');
+  } catch (err) {
+    showToast('No se pudo enviar: ' + err.message, 'error');
+  }
+};
+
+const guardarConfigUsuario = async (uid) => {
+  const b = borradoresConfig[uid];
+  if (!b) return;
+  if (uid === currentUser.uid && b.rol !== 'admin') {
+    return showToast('No podés sacarte el rol de admin a vos mismo', 'error');
+  }
+  if (uid === currentUser.uid && !b.activo) {
+    return showToast('No podés desactivar tu propia cuenta', 'error');
+  }
+  try {
+    const datos = { rol: b.rol, activo: b.activo, modulosOcultos: b.modulosOcultos };
+    datos.lineasVisiblesOverride = b.modoAutomatico ? firebase.firestore.FieldValue.delete() : b.lineasVisiblesOverride;
+    await db.collection('usuarios').doc(uid).set(datos, { merge: true });
+    showToast('Cambios guardados', 'success');
+    usuarioConfigAbierto = null;
+  } catch (err) {
+    showToast('No se pudo guardar: ' + err.message, 'error');
+  }
+};
+
+const renderDetalleConfigUsuario = (u) => {
+  const b = borradoresConfig[u.uid];
+  const esUnoMismo = u.uid === currentUser.uid;
+  const modulosHtml = MODULOS_CONFIG.map(m => `
+    <label class="flex items-center gap-2 text-xs py-0.5">
+      <input type="checkbox" ${!b.modulosOcultos.includes(m.key) ? 'checked' : ''} onchange="toggleModuloConfig('${u.uid}','${m.key}', this.checked)">
+      ${m.label}
+    </label>`).join('');
+  const lineasHtml = lineasCache.length === 0
+    ? `<p class="text-xs col-span-2" style="color:var(--ink-faint);">No hay líneas cargadas todavía.</p>`
+    : lineasCache.map(l => `
+      <label class="flex items-center gap-2 text-xs py-0.5">
+        <input type="checkbox" ${b.lineasVisiblesOverride.includes(l.id) ? 'checked' : ''} onchange="toggleLineaConfig('${u.uid}','${l.id}', this.checked)">
+        ${l.visibilidad === 'privada' ? '🔒 ' : ''}${l.nombre}
+      </label>`).join('');
+
+  return `
+    <div class="grid grid-cols-2 gap-3 mb-3 pt-3" style="border-top:1px solid var(--line);">
+      <div>
+        <label class="field-label">Rol</label>
+        <select class="input-field" ${esUnoMismo ? 'disabled title="No podés cambiar tu propio rol"' : ''} onchange="borradoresConfig['${u.uid}'].rol = this.value">
+          <option value="vendedor" ${b.rol === 'vendedor' ? 'selected' : ''}>Vendedor</option>
+          <option value="admin" ${b.rol === 'admin' ? 'selected' : ''}>Admin</option>
+        </select>
+      </div>
+      <div>
+        <label class="field-label">Estado</label>
+        <select class="input-field" ${esUnoMismo ? 'disabled title="No podés desactivar tu propia cuenta"' : ''} onchange="borradoresConfig['${u.uid}'].activo = (this.value === 'activo')">
+          <option value="activo" ${b.activo ? 'selected' : ''}>Activo</option>
+          <option value="inactivo" ${!b.activo ? 'selected' : ''}>Inactivo</option>
+        </select>
+      </div>
+    </div>
+    <p class="field-label mb-1">Módulos visibles</p>
+    <div class="grid grid-cols-2 gap-x-3 mb-3">${modulosHtml}</div>
+    <p class="field-label mb-1">Líneas visibles</p>
+    <label class="flex items-center gap-2 text-xs mb-2">
+      <input type="checkbox" ${b.modoAutomatico ? 'checked' : ''} onchange="toggleModoAutomaticoConfig('${u.uid}', this.checked)">
+      Automático (según líneas públicas y privadas que tenga habilitadas)
+    </label>
+    <div class="${b.modoAutomatico ? 'hidden' : ''} grid grid-cols-2 gap-x-3 mb-3" style="max-height:180px; overflow:auto; border:1px solid var(--line); border-radius:8px; padding:8px 10px;">
+      ${lineasHtml}
+    </div>
+    <div class="flex gap-2 flex-wrap">
+      <button type="button" class="btn btn-primary btn-sm" onclick="guardarConfigUsuario('${u.uid}')">Guardar cambios</button>
+      <button type="button" class="btn btn-ghost btn-sm" onclick="reenviarResetConfig('${u.email}')">Reenviar restablecer contraseña</button>
+    </div>
+  `;
+};
+
+const renderConfigUsuarios = () => {
+  const cont = document.getElementById('listaConfigUsuarios');
+  if (!cont) return;
+  if (usuariosCache.length === 0) {
+    cont.innerHTML = `<p class="text-sm text-center py-8" style="color:var(--ink-faint);">No hay usuarios cargados.</p>`;
+    return;
+  }
+  cont.innerHTML = usuariosCache.map(u => {
+    const abierto = usuarioConfigAbierto === u.uid;
+    const badgeInactivo = u.activo === false ? `<span style="background:var(--red-700); color:#fff; font-size:0.62rem; font-weight:600; padding:1px 7px; border-radius:99px; margin-left:6px;">Inactivo</span>` : '';
+    return `
+      <div class="rounded-lg" style="border:1px solid var(--line);">
+        <button type="button" class="w-full flex items-center justify-between gap-3 p-3 text-left" onclick="toggleDetalleConfigUsuario('${u.uid}')">
+          <div class="min-w-0">
+            <p class="text-sm font-semibold" style="color:var(--ink);">${u.nombre || u.email}${badgeInactivo}</p>
+            <p class="text-xs truncate" style="color:var(--ink-faint);">${u.email} · ${u.rol || 'vendedor'}</p>
+          </div>
+          <span style="color:var(--ink-faint); flex-shrink:0;">${abierto ? '▲' : '▼'}</span>
+        </button>
+        ${abierto ? `<div class="px-3 pb-3">${renderDetalleConfigUsuario(u)}</div>` : ''}
       </div>`;
   }).join('');
 };
@@ -3526,6 +3765,7 @@ document.querySelectorAll('.nav-item[data-main-tab]').forEach(btn => {
     document.getElementById(`main-${tabName}`).classList.remove('hidden');
     if (tabName === 'comparador') { poblarLineasComparador(); if (plazosComparadorActuales.length === 0) plazosComparadorActuales = [6,12,18,24,36]; renderPlazosComparador(); }
     if (tabName === 'historial') { renderHistorialCambios(); marcarHistorialVisto(); }
+    if (tabName === 'config') { usuarioConfigAbierto = null; renderConfigUsuarios(); }
     window.scrollTo({ top: 0, behavior: 'instant' });
   });
 });
