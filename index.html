@@ -1149,7 +1149,7 @@ const db = firebase.firestore();
 // un admin marca una versión nueva como la única válida.
 // IMPORTANTE: subir este número cada vez que se entregue un archivo nuevo.
 // ============================================================
-const APP_VERSION = 60;
+const APP_VERSION = 61;
 let versionBloqueada = false;
 
 const verificarVersion = async () => {
@@ -1365,7 +1365,12 @@ document.getElementById('btnLogout').addEventListener('click', cerrarSesion);
 document.getElementById('btnLogoutMobile').addEventListener('click', cerrarSesion);
 document.getElementById('versionActualLabel').textContent = 'v' + APP_VERSION;
 document.getElementById('btnMarcarVersion').addEventListener('click', marcarVersionActual);
-document.getElementById('btnRecargarVersion').addEventListener('click', () => location.reload());
+// location.reload() a veces sirve una copia cacheada por el navegador, no la
+// última versión real del archivo. Navegar a la misma URL con un parámetro
+// único fuerza al navegador a pedirla de nuevo al servidor sí o sí.
+document.getElementById('btnRecargarVersion').addEventListener('click', () => {
+  window.location.href = window.location.origin + window.location.pathname + '?actualizado=' + Date.now();
+});
 
 // ============================================================
 // GESTIÓN DE LÍNEAS (Firestore: colección "lineas")
