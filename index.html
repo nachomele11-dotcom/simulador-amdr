@@ -1144,7 +1144,7 @@ const db = firebase.firestore();
 // un admin marca una versión nueva como la única válida.
 // IMPORTANTE: subir este número cada vez que se entregue un archivo nuevo.
 // ============================================================
-const APP_VERSION = 56;
+const APP_VERSION = 57;
 let versionBloqueada = false;
 
 const verificarVersion = async () => {
@@ -2616,10 +2616,15 @@ const ajustarADiaHabilAnterior = (fecha) => {
 // contra la planilla de Contaduría: con días reales el interés total de un
 // caso real subió de $37.882.742,60 a $38.756.078,82, ~2,3% más).
 // usarDiasReales=false: aproxima cada mes a 30 días (TNA × 30×meses/365) — se
-// usa SOLO para Mensual, a pedido explícito, porque para períodos de un único
-// mes la aproximación es la convención tradicional y evita que la cuota varíe
-// cuota a cuota solo porque un mes tiene 28, 30 o 31 días.
-const generarCronogramaDesdeFechas = (capital, tna, fechas, fechaOtorgamiento, gracia, usarDiasReales = true) => {
+// usa SOLO para Mensual, a pedido explícito. En este caso, mesesPeriodoFijo
+// (siempre 1 para Mensual) es el que define la tasa de CADA cuota, no la
+// fecha real del vencimiento — así, aunque la regla del día 21 corra la
+// PRIMERA cuota un mes entero (para que no caiga pegada al pedido), esa
+// cuota se sigue cobrando como "1 mes" de interés, no como "2 meses" por la
+// distancia real de calendario. Las cuotas de un préstamo mensual son
+// siempre iguales entre sí, sin excepción — este es justamente el motivo por
+// el que existía el bug reportado (la primera cuota salía el doble).
+const generarCronogramaDesdeFechas = (capital, tna, fechas, fechaOtorgamiento, gracia, usarDiasReales = true, mesesPeriodoFijo = null) => {
   const cronograma = [];
   const n = fechas.length;
   let saldo = capital;
@@ -2632,8 +2637,7 @@ const generarCronogramaDesdeFechas = (capital, tna, fechas, fechaOtorgamiento, g
       const dias = Math.round((fechaPago - fechaAnterior) / (1000 * 60 * 60 * 24));
       tepPeriodo = (tna / 100) * (dias / 365);
     } else {
-      const mesesEnPeriodo = (fechaPago.getFullYear() * 12 + fechaPago.getMonth()) - (fechaAnterior.getFullYear() * 12 + fechaAnterior.getMonth());
-      tepPeriodo = calcularTEP(tna, mesesEnPeriodo);
+      tepPeriodo = calcularTEP(tna, mesesPeriodoFijo);
     }
     const interes = saldo * tepPeriodo;
     const esGracia = i < gracia;
@@ -2707,7 +2711,7 @@ const generarCronograma = (capital, tna, n, fechaInicio, mesesPeriodo, gracia) =
   const fechas = [];
   for (let i = 0; i < n; i++) fechas.push(fechaCuotaRegular(indiceMesBase, mesesPeriodo, i));
   const usarDiasReales = mesesPeriodo !== 1;
-  return generarCronogramaDesdeFechas(capital, tna, fechas, fecha, gracia, usarDiasReales);
+  return generarCronogramaDesdeFechas(capital, tna, fechas, fecha, gracia, usarDiasReales, mesesPeriodo);
 };
 
 // Capital bruto a partir del monto neto solicitado, replicando exactamente
