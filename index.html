@@ -708,8 +708,6 @@
                       <p><span class="font-semibold" id="propLblMonto">Monto neto:</span> <span id="propMonto"></span></p>
                       <p><span class="font-semibold" id="propLblCuota">Cuota:</span> <span id="propCuota"></span></p>
                       <p><span class="font-semibold" id="propLblCapital">Capital:</span> <span id="propCapital"></span></p>
-                      <p><span class="font-semibold" id="propLblTNA">TNA:</span> <span id="propTNA"></span></p>
-                      <p><span class="font-semibold" id="propLblTEM">TEM:</span> <span id="propTEM"></span></p>
                       <p><span class="font-semibold" id="propLblPlazo">Plazo:</span> <span id="propPlazo"></span></p>
                       <p id="propPeriodRow"><span class="font-semibold" id="propLblPeriod">Periodicidad:</span> <span id="propPeriod"></span></p>
                       <p id="propGraciaRow"><span class="font-semibold" id="propLblGracia">Períodos gracia:</span> <span id="propGracia"></span></p>
@@ -1144,7 +1142,7 @@ const db = firebase.firestore();
 // un admin marca una versión nueva como la única válida.
 // IMPORTANTE: subir este número cada vez que se entregue un archivo nuevo.
 // ============================================================
-const APP_VERSION = 63;
+const APP_VERSION = 64;
 let versionBloqueada = false;
 
 const verificarVersion = async () => {
@@ -3122,8 +3120,6 @@ const actualizarPropuesta = () => {
   document.getElementById('propMonto').textContent = fmt(redondearPesos(s.monto), 0, s.moneda);
   document.getElementById('propLblCapital').textContent = 'Capital:';
   document.getElementById('propCapital').textContent = fmt(redondearPesos(s.capital), 0, s.moneda);
-  document.getElementById('propLblTNA').textContent = 'TNA:';
-  document.getElementById('propTNA').textContent = fmtNum(s.tna) + '%';
   document.getElementById('propLblPlazo').textContent = 'Plazo:';
   document.getElementById('propPlazo').textContent = s.esModificable ? `${s.cantidadCuotas} cuota${s.cantidadCuotas === 1 ? '' : 's'} (Modificable)` : `${fraseCuotas(s.cantidadCuotas, s.mesesPeriodo)} (${s.plazoMeses} meses)`;
   document.getElementById('propPeriodRow').classList.remove('hidden');
@@ -3136,8 +3132,6 @@ const actualizarPropuesta = () => {
   document.getElementById('propFecha').textContent = new Date(s.fechaOtorg + 'T00:00:00').toLocaleDateString('es-AR');
   document.getElementById('propLblCuota').textContent = s.cuotaVariable ? 'Cuota promedio:' : 'Cuota:';
   document.getElementById('propCuota').textContent = fmt(redondearPesos(s.cuota), 0, s.moneda) + (s.cuotaVariable ? '' : ' (fijas)');
-  document.getElementById('propLblTEM').textContent = 'TEM:';
-  document.getElementById('propTEM').textContent = fmtNum(s.tem) + '%';
   const cantCuotasTexto = s.cantidadCuotas === 1 ? '1 cuota' : `${s.cantidadCuotas} cuotas`;
   const promedioTexto = s.cuotaVariable ? ' promedio' : '';
   document.getElementById('propResumenTexto').textContent = `${fmt(redondearPesos(s.monto), 0, s.moneda)} en ${cantCuotasTexto}${promedioTexto} de ${fmt(redondearPesos(s.cuota), 0, s.moneda)}`;
