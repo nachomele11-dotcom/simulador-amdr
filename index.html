@@ -995,6 +995,15 @@
             </div>
           </div>
 
+          <div class="mb-4">
+            <label class="field-label">CUIT <span class="font-normal" style="color:var(--ink-faint);">(opcional — consulta situación en BCRA)</span></label>
+            <div class="flex gap-2">
+              <input id="compCuit" type="text" class="input-field" placeholder="20123456789" maxlength="11" inputmode="numeric">
+              <button type="button" id="btnConsultarBCRAComp" class="btn btn-secondary btn-sm" style="white-space:nowrap;">Consultar</button>
+            </div>
+            <div id="resultadoBCRAComp" class="hidden mt-2 rounded-lg p-3 text-xs"></div>
+          </div>
+
           <div class="grid sm:grid-cols-2 gap-4 mb-4">
             <div>
               <label class="field-label">¿Qué querés fijar?</label>
@@ -1142,7 +1151,7 @@ const db = firebase.firestore();
 // un admin marca una versión nueva como la única válida.
 // IMPORTANTE: subir este número cada vez que se entregue un archivo nuevo.
 // ============================================================
-const APP_VERSION = 64;
+const APP_VERSION = 65;
 let versionBloqueada = false;
 
 const verificarVersion = async () => {
@@ -3879,6 +3888,9 @@ document.getElementById('btnConsultarBCRA').addEventListener('click', () => {
 document.getElementById('cuit').addEventListener('input', () => {
   denominacionBCRAActual = null;
   cuitConsultadoBCRA = null;
+});
+document.getElementById('btnConsultarBCRAComp').addEventListener('click', () => {
+  consultarBCRA(document.getElementById('compCuit').value, document.getElementById('resultadoBCRAComp'));
 });
 document.getElementById('btnCalcular').addEventListener('click', calcular);
 document.getElementById('btnGuardar').addEventListener('click', guardarSimulacion);
