@@ -675,6 +675,7 @@
               <div id="tab-propuesta" class="tab-content hidden p-4 sm:p-5">
                 <div class="tab-strip mb-4 no-print" style="border-bottom:1px solid var(--line);">
                   <button class="tab-btn active" data-subtab="formal">Formal</button>
+                  <button class="tab-btn" data-subtab="formal2">Formal 2</button>
                   <button class="tab-btn" data-subtab="whatsapp">Para WhatsApp</button>
                 </div>
 
@@ -743,6 +744,72 @@
                   <p id="propChequeLegal" class="text-xs text-center mt-1 hidden" style="color:var(--ink-faint);">La misma puede verse modificada de acuerdo a los plazos legales de acreditación de los valores.</p>
                 </div>
                 </div><!-- /subtab-formal -->
+
+                <div id="subtab-formal2" class="subtab-content hidden">
+                <div class="flex justify-between items-center mb-4 no-print flex-wrap gap-2">
+                  <h3 class="font-display text-lg" style="font-weight:600;">Vista imprimible (Formal 2)</h3>
+                  <div class="flex gap-2 flex-wrap">
+                    <button id="btnPDF2" class="btn btn-primary btn-sm">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                      Generar PDF
+                    </button>
+                    <button id="btnImagenFormal2" class="btn btn-secondary btn-sm">Descargar imagen</button>
+                    <button id="btnCopiarFormal2" class="btn btn-ghost btn-sm">Copiar imagen</button>
+                  </div>
+                </div>
+                <div id="propuesta-print-2" class="bg-white p-8 rounded-lg" style="border:1px solid var(--line);">
+                  <div class="flex justify-between items-start mb-8 pb-6" style="border-bottom:2px solid var(--purple-500);">
+                    <img id="logoPropuesta2" src="" alt="Grupo AMDR" class="h-16 w-auto object-contain">
+                    <div class="text-right">
+                      <h2 class="font-display text-2xl" style="font-weight:600; color:var(--ink);">Propuesta comercial</h2>
+                      <p class="text-sm" style="color:var(--ink-soft);">Mutual AMDR</p>
+                      <p id="fechaPropuesta2" class="text-xs mt-1" style="color:var(--ink-faint);"></p>
+                    </div>
+                  </div>
+                  <div class="mb-6">
+                    <h3 class="font-display text-lg mb-3" style="font-weight:600; color:var(--purple-700);">Datos del cliente</h3>
+                    <p class="text-sm"><span class="font-semibold">Cliente:</span> <span id="propCliente2">-</span><span id="propCuitInline2" class="hidden"> · CUIT: <span id="propCuit2"></span></span></p>
+                  </div>
+                  <div class="mb-6" id="propCondicionesBlock2">
+                    <h3 class="font-display text-lg mb-3" style="font-weight:600; color:var(--purple-700);" id="propTituloCondiciones2">Condiciones del crédito</h3>
+                    <div class="grid grid-cols-2 gap-3 text-sm">
+                      <p><span class="font-semibold" id="propLblMonto2">Monto neto:</span> <span id="propMonto2"></span></p>
+                      <p><span class="font-semibold" id="propLblCuota2">Cuota:</span> <span id="propCuota2"></span></p>
+                      <p><span class="font-semibold" id="propLblCapital2">Capital:</span> <span id="propCapital2"></span></p>
+                      <p><span class="font-semibold" id="propLblPlazo2">Plazo:</span> <span id="propPlazo2"></span></p>
+                      <p id="propPeriodRow2"><span class="font-semibold" id="propLblPeriod2">Periodicidad:</span> <span id="propPeriod2"></span></p>
+                      <p id="propGraciaRow2"><span class="font-semibold" id="propLblGracia2">Períodos gracia:</span> <span id="propGracia2"></span></p>
+                      <p><span class="font-semibold" id="propLblFecha2">Fecha otorg.:</span> <span id="propFecha2"></span></p>
+                    </div>
+                    <div class="rounded-lg p-5 mt-5" style="background:var(--purple-800);">
+                      <p class="font-display" style="font-size:0.7rem; text-transform:uppercase; letter-spacing:0.06em; color:#C9B8D1; margin:0 0 6px; text-align:left;">Resumen financiero</p>
+                      <p id="propResumenTexto2" style="font-family:'Fraunces',serif; font-size:1.3rem; font-weight:600; color:#fff; margin:0; text-align:center;"></p>
+                    </div>
+                  </div>
+
+                  <div class="mb-6 hidden" id="propChequeBloque2">
+                    <h3 class="font-display text-lg mb-3" style="font-weight:600; color:var(--purple-700);">Detalle de los cheques</h3>
+                    <div class="table-wrap">
+                      <table class="data-table" style="font-size:0.78rem;">
+                        <thead><tr><th>N°</th><th>Fecha del cheque</th><th>Valor nominal</th><th>Descuento</th></tr></thead>
+                        <tbody id="propTablaCheques2"></tbody>
+                      </table>
+                    </div>
+                    <div class="mt-4 rounded-lg p-5" style="background:var(--purple-50);">
+                      <h3 class="font-display text-lg mb-3" style="font-weight:600; color:var(--purple-700);">Resumen del adelanto</h3>
+                      <div class="grid grid-cols-2 gap-3 text-sm">
+                        <p><span class="font-semibold">Cantidad de cheques:</span> <span id="propChCantidad2"></span></p>
+                        <p class="text-right"><span class="font-semibold">Fecha de operación:</span> <span id="propChFechaOp2"></span></p>
+                        <p><span class="font-semibold">Valor nominal total:</span> <span id="propChValorTotal2"></span></p>
+                        <p class="text-right"><span class="font-semibold">Monto neto a adelantar:</span> <span id="propChNeto2" style="color:var(--purple-700);"></span></p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <p class="text-xs text-center mt-8" style="color:var(--ink-faint);">Esta propuesta no constituye una oferta vinculante.</p>
+                  <p id="propChequeLegal2" class="text-xs text-center mt-1 hidden" style="color:var(--ink-faint);">La misma puede verse modificada de acuerdo a los plazos legales de acreditación de los valores.</p>
+                </div>
+                </div><!-- /subtab-formal2 -->
 
                 <div id="subtab-whatsapp" class="subtab-content hidden">
                   <div class="flex justify-between items-center mb-4 no-print flex-wrap gap-2">
@@ -3088,19 +3155,31 @@ const actualizarTablaCronograma = () => {
   `).join('');
 };
 
+document.getElementById('logoPropuesta2').src = document.getElementById('logoPropuesta').src;
+
 const actualizarPropuesta = () => {
   if (!simulacionActual) return;
   const s = simulacionActual;
-  document.getElementById('fechaPropuesta').textContent = new Date().toLocaleDateString('es-AR');
-  document.getElementById('propCliente').textContent = s.clienteDisplay || s.cliente;
+  const fechaHoyTexto = new Date().toLocaleDateString('es-AR');
   const cuitLimpio = (s.cuit || '').replace(/\D/g, '');
-  document.getElementById('propCuitInline').classList.toggle('hidden', cuitLimpio.length !== 11);
-  if (cuitLimpio.length === 11) document.getElementById('propCuit').textContent = s.cuit;
+
+  ['', '2'].forEach(sfx => {
+    document.getElementById(`fechaPropuesta${sfx}`).textContent = fechaHoyTexto;
+    document.getElementById(`propCliente${sfx}`).textContent = s.clienteDisplay || s.cliente;
+    document.getElementById(`propCuitInline${sfx}`).classList.toggle('hidden', cuitLimpio.length !== 11);
+    if (cuitLimpio.length === 11) document.getElementById(`propCuit${sfx}`).textContent = s.cuit;
+  });
 
   if (s.tipo === 'cheque') {
-    document.getElementById('propCondicionesBlock').classList.add('hidden');
-    document.getElementById('propChequeBloque').classList.remove('hidden');
-    document.getElementById('propChequeLegal').classList.remove('hidden');
+    ['', '2'].forEach(sfx => {
+      document.getElementById(`propCondicionesBlock${sfx}`).classList.add('hidden');
+      document.getElementById(`propChequeBloque${sfx}`).classList.remove('hidden');
+      document.getElementById(`propChequeLegal${sfx}`).classList.remove('hidden');
+      document.getElementById(`propChCantidad${sfx}`).textContent = s.cheques.length;
+      document.getElementById(`propChValorTotal${sfx}`).textContent = fmt(redondearPesos(s.sumaValorNominal), 0, s.moneda);
+      document.getElementById(`propChFechaOp${sfx}`).textContent = new Date(s.fechaOperacion + 'T00:00:00').toLocaleDateString('es-AR');
+      document.getElementById(`propChNeto${sfx}`).textContent = fmt(redondearPesos(s.montoNeto), 0, s.moneda);
+    });
 
     document.getElementById('propTablaCheques').innerHTML = s.cheques.map(c => `
       <tr>
@@ -3113,38 +3192,50 @@ const actualizarPropuesta = () => {
         <td>${fmt(redondearPesos(c.descuento), 0, s.moneda)}</td>
       </tr>`).join('');
 
-    document.getElementById('propChCantidad').textContent = s.cheques.length;
-    document.getElementById('propChValorTotal').textContent = fmt(redondearPesos(s.sumaValorNominal), 0, s.moneda);
-    document.getElementById('propChFechaOp').textContent = new Date(s.fechaOperacion + 'T00:00:00').toLocaleDateString('es-AR');
-    document.getElementById('propChNeto').textContent = fmt(redondearPesos(s.montoNeto), 0, s.moneda);
+    // Formal 2: solo N°, fecha del cheque, valor nominal y descuento
+    // (sin "Se acredita", "Días" ni "TNA")
+    document.getElementById('propTablaCheques2').innerHTML = s.cheques.map(c => `
+      <tr>
+        <td>${c.numero}</td>
+        <td>${new Date(c.fechaCobro + 'T00:00:00').toLocaleDateString('es-AR')}</td>
+        <td>${fmt(redondearPesos(c.valorNominal), 0, s.moneda)}</td>
+        <td>${fmt(redondearPesos(c.descuento), 0, s.moneda)}</td>
+      </tr>`).join('');
+
     return;
   }
 
-  document.getElementById('propCondicionesBlock').classList.remove('hidden');
-  document.getElementById('propChequeBloque').classList.add('hidden');
-  document.getElementById('propChequeLegal').classList.add('hidden');
+  ['', '2'].forEach(sfx => {
+    document.getElementById(`propCondicionesBlock${sfx}`).classList.remove('hidden');
+    document.getElementById(`propChequeBloque${sfx}`).classList.add('hidden');
+    document.getElementById(`propChequeLegal${sfx}`).classList.add('hidden');
+  });
 
   const periodTexto = { 1: 'Mensual', 2: 'Bimestral', 3: 'Trimestral', 6: 'Semestral', 12: 'Anual' };
-  document.getElementById('propTituloCondiciones').textContent = 'Condiciones del crédito';
-  document.getElementById('propLblMonto').textContent = 'Monto neto:';
-  document.getElementById('propMonto').textContent = fmt(redondearPesos(s.monto), 0, s.moneda);
-  document.getElementById('propLblCapital').textContent = 'Capital:';
-  document.getElementById('propCapital').textContent = fmt(redondearPesos(s.capital), 0, s.moneda);
-  document.getElementById('propLblPlazo').textContent = 'Plazo:';
-  document.getElementById('propPlazo').textContent = s.esModificable ? `${s.cantidadCuotas} cuota${s.cantidadCuotas === 1 ? '' : 's'} (Modificable)` : `${fraseCuotas(s.cantidadCuotas, s.mesesPeriodo)} (${s.plazoMeses} meses)`;
-  document.getElementById('propPeriodRow').classList.remove('hidden');
-  document.getElementById('propLblPeriod').textContent = 'Periodicidad:';
-  document.getElementById('propPeriod').textContent = s.esModificable ? 'Modificable' : periodTexto[s.mesesPeriodo];
-  document.getElementById('propLblGracia').textContent = 'Períodos gracia:';
-  document.getElementById('propGracia').textContent = s.gracia;
-  document.getElementById('propGraciaRow').classList.toggle('hidden', !s.gracia || s.gracia === 0);
-  document.getElementById('propLblFecha').textContent = 'Fecha otorg.:';
-  document.getElementById('propFecha').textContent = new Date(s.fechaOtorg + 'T00:00:00').toLocaleDateString('es-AR');
-  document.getElementById('propLblCuota').textContent = s.cuotaVariable ? 'Cuota promedio:' : 'Cuota:';
-  document.getElementById('propCuota').textContent = fmt(redondearPesos(s.cuota), 0, s.moneda) + (s.cuotaVariable ? '' : ' (fijas)');
+  const plazoTexto = s.esModificable ? `${s.cantidadCuotas} cuota${s.cantidadCuotas === 1 ? '' : 's'} (Modificable)` : `${fraseCuotas(s.cantidadCuotas, s.mesesPeriodo)} (${s.plazoMeses} meses)`;
   const cantCuotasTexto = s.cantidadCuotas === 1 ? '1 cuota' : `${s.cantidadCuotas} cuotas`;
   const promedioTexto = s.cuotaVariable ? ' promedio' : '';
-  document.getElementById('propResumenTexto').textContent = `${fmt(redondearPesos(s.monto), 0, s.moneda)} en ${cantCuotasTexto}${promedioTexto} de ${fmt(redondearPesos(s.cuota), 0, s.moneda)}`;
+
+  ['', '2'].forEach(sfx => {
+    document.getElementById(`propTituloCondiciones${sfx}`).textContent = 'Condiciones del crédito';
+    document.getElementById(`propLblMonto${sfx}`).textContent = 'Monto neto:';
+    document.getElementById(`propMonto${sfx}`).textContent = fmt(redondearPesos(s.monto), 0, s.moneda);
+    document.getElementById(`propLblCapital${sfx}`).textContent = 'Capital:';
+    document.getElementById(`propCapital${sfx}`).textContent = fmt(redondearPesos(s.capital), 0, s.moneda);
+    document.getElementById(`propLblPlazo${sfx}`).textContent = 'Plazo:';
+    document.getElementById(`propPlazo${sfx}`).textContent = plazoTexto;
+    document.getElementById(`propPeriodRow${sfx}`).classList.remove('hidden');
+    document.getElementById(`propLblPeriod${sfx}`).textContent = 'Periodicidad:';
+    document.getElementById(`propPeriod${sfx}`).textContent = s.esModificable ? 'Modificable' : periodTexto[s.mesesPeriodo];
+    document.getElementById(`propLblGracia${sfx}`).textContent = 'Períodos gracia:';
+    document.getElementById(`propGracia${sfx}`).textContent = s.gracia;
+    document.getElementById(`propGraciaRow${sfx}`).classList.toggle('hidden', !s.gracia || s.gracia === 0);
+    document.getElementById(`propLblFecha${sfx}`).textContent = 'Fecha otorg.:';
+    document.getElementById(`propFecha${sfx}`).textContent = new Date(s.fechaOtorg + 'T00:00:00').toLocaleDateString('es-AR');
+    document.getElementById(`propLblCuota${sfx}`).textContent = s.cuotaVariable ? 'Cuota promedio:' : 'Cuota:';
+    document.getElementById(`propCuota${sfx}`).textContent = fmt(redondearPesos(s.cuota), 0, s.moneda) + (s.cuotaVariable ? '' : ' (fijas)');
+    document.getElementById(`propResumenTexto${sfx}`).textContent = `${fmt(redondearPesos(s.monto), 0, s.moneda)} en ${cantCuotasTexto}${promedioTexto} de ${fmt(redondearPesos(s.cuota), 0, s.moneda)}`;
+  });
 };
 
 // Versión informal/llamativa para compartir por WhatsApp: solo lo esencial
@@ -3551,11 +3642,11 @@ const esperarImagenes = async (elemento) => {
   ]);
 };
 
-const generarPDF = async () => {
+const generarPDF = async (elementId = 'propuesta-print', filenamePrefix = 'AMDR_Propuesta') => {
   if (!simulacionActual) return showToast('Primero calculá una simulación', 'error');
   showToast('Generando PDF...', 'info');
   const { jsPDF } = window.jspdf;
-  const elemento = document.getElementById('propuesta-print');
+  const elemento = document.getElementById(elementId);
   await esperarImagenes(elemento);
   const canvas = await html2canvas(elemento, { scale: 2, logging: false, backgroundColor: '#ffffff' });
   const imgData = canvas.toDataURL('image/png');
@@ -3563,7 +3654,7 @@ const generarPDF = async () => {
   const imgWidth = 210;
   const imgHeight = canvas.height * imgWidth / canvas.width;
   pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
-  pdf.save(`AMDR_Propuesta_${simulacionActual.cliente.replace(/\s+/g, '_')}.pdf`);
+  pdf.save(`${filenamePrefix}_${simulacionActual.cliente.replace(/\s+/g, '_')}.pdf`);
   showToast('PDF generado correctamente', 'success');
 };
 
@@ -3896,11 +3987,14 @@ document.getElementById('btnConsultarBCRAComp').addEventListener('click', () => 
 document.getElementById('btnCalcular').addEventListener('click', calcular);
 document.getElementById('btnGuardar').addEventListener('click', guardarSimulacion);
 document.getElementById('btnNueva').addEventListener('click', nuevaSimulacion);
-document.getElementById('btnPDF').addEventListener('click', generarPDF);
+document.getElementById('btnPDF').addEventListener('click', () => generarPDF());
 document.getElementById('btnPDFCronograma').addEventListener('click', generarPDFCronograma);
 document.getElementById('btnPDFCronogramaCheque').addEventListener('click', generarPDFCronograma);
 document.getElementById('btnImagenFormal').addEventListener('click', () => descargarImagen('propuesta-print', 'AMDR_Propuesta', '#ffffff'));
 document.getElementById('btnCopiarFormal').addEventListener('click', () => copiarImagen('propuesta-print', '#ffffff'));
+document.getElementById('btnPDF2').addEventListener('click', () => generarPDF('propuesta-print-2', 'AMDR_Propuesta2'));
+document.getElementById('btnImagenFormal2').addEventListener('click', () => descargarImagen('propuesta-print-2', 'AMDR_Propuesta2', '#ffffff'));
+document.getElementById('btnCopiarFormal2').addEventListener('click', () => copiarImagen('propuesta-print-2', '#ffffff'));
 document.getElementById('btnImagenWhatsapp').addEventListener('click', () => descargarImagen('propuesta-whatsapp', 'AMDR_WhatsApp', '#33193E'));
 document.getElementById('btnCopiarWhatsapp').addEventListener('click', () => copiarImagen('propuesta-whatsapp', '#33193E'));
 document.getElementById('btnAgregarPlazoComparador').addEventListener('click', agregarPlazoComparador);
