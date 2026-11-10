@@ -261,6 +261,11 @@
 
   /* ===== Responsive: collapse sidebar to topbar ===== */
   @media (max-width: 1023px) {
+    /* .app-shell es flex-direction:row por defecto (para sidebar + contenido
+       lado a lado en desktop). Sin este override, en mobile el topbar queda
+       como flex item en la misma fila que .main-scroll en vez de apilarse
+       arriba, y el contenido termina angostísimo al costado. */
+    .app-shell { flex-direction: column; }
     .sidebar { display: none; }
     .topbar { display: block; position: sticky; top: 0; z-index: 40; }
   }
