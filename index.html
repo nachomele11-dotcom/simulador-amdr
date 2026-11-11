@@ -282,6 +282,91 @@
     .amdr-monto-hero { font-size: 1.9rem !important; }
   }
 
+  /* ===== Módulo concesionarias ===== */
+  /* Los numeritos del menú tienen display inline en su style: sin esto, la clase .hidden
+     no alcanza para ocultarlos y quedaba un "0" visible cuando no había novedades. */
+  .badge-historial.hidden, .badge-conc.hidden, .cc-badge.hidden { display: none !important; }
+  .cc-seg { display:flex; background:var(--paper-deep); border-radius:9px; padding:3px; gap:3px; }
+  .cc-seg button { flex:1; border:none; background:transparent; font-weight:600; font-size:0.78rem; color:var(--ink-soft); padding:8px 4px; border-radius:7px; cursor:pointer; line-height:1.2; }
+  .cc-seg button.on { background:#fff; color:var(--purple-700); box-shadow:0 1px 3px rgba(0,0,0,0.1); }
+  .cc-paso { background:#fff; border:1px solid var(--line); border-radius:14px; padding:16px; margin-bottom:12px; }
+  .cc-paso-tit { display:flex; align-items:center; gap:8px; margin-bottom:12px; }
+  .cc-paso-num { width:24px; height:24px; border-radius:50%; background:var(--purple-700); color:#fff; font-size:0.75rem; font-weight:700; display:inline-flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .cc-paso-tit h3 { font-size:1rem; font-weight:600; }
+  .cc-ok { background:var(--green-100); color:var(--green-700); border-radius:10px; padding:10px 12px; font-size:0.8rem; }
+  .cc-no { background:var(--red-100); color:var(--red-700); border-radius:10px; padding:10px 12px; font-size:0.8rem; }
+  .cc-neutro { background:var(--paper-deep); color:var(--ink-soft); border-radius:10px; padding:10px 12px; font-size:0.8rem; }
+  .cc-resumen { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; }
+  .cc-resumen > div { background:var(--purple-50); border-radius:10px; padding:9px 6px; text-align:center; min-width:0; }
+  .cc-resumen .lab { font-size:0.62rem; text-transform:uppercase; letter-spacing:0.04em; color:var(--ink-faint); }
+  .cc-resumen .val { font-weight:700; font-size:0.8rem; margin-top:2px; white-space:nowrap; }
+  .cc-resumen > .acc { background:var(--purple-700); }
+  .cc-resumen > .acc .lab { color:#D9CBDF; }
+  .cc-resumen > .acc .val { color:#fff; }
+  .cc-opt { display:flex; align-items:center; justify-content:space-between; border:1.5px solid var(--line); border-radius:10px; padding:10px 12px; margin-top:6px; cursor:pointer; background:#fff; width:100%; }
+  .cc-opt.on { border-color:var(--purple-500); background:var(--purple-50); }
+  .cc-opt .pl { font-weight:700; font-size:0.86rem; color:var(--ink); }
+  .cc-opt .cu { font-weight:600; color:var(--purple-700); font-size:0.9rem; white-space:nowrap; }
+  .cc-estado { display:inline-block; font-size:0.66rem; font-weight:700; padding:3px 9px; border-radius:999px; text-transform:uppercase; letter-spacing:0.03em; white-space:nowrap; }
+  .cc-e-nueva { background:#E6EFF8; color:#2B5C8A; }
+  .cc-e-en_analisis { background:var(--amber-100); color:var(--amber-700); }
+  .cc-e-aprobada { background:var(--green-100); color:var(--green-700); }
+  .cc-e-rechazada { background:var(--red-100); color:var(--red-700); }
+  .cc-card { background:#fff; border:1px solid var(--line); border-radius:14px; padding:13px 14px; margin-bottom:8px; position:relative; }
+  .cc-card.novedad { border-color:var(--purple-500); box-shadow:0 0 0 2px rgba(123,75,148,0.15); }
+  .cc-card .punto { position:absolute; top:13px; right:13px; width:9px; height:9px; border-radius:50%; background:var(--red-700); }
+  .cc-comentario { background:var(--purple-50); border-left:3px solid var(--purple-500); border-radius:6px; padding:7px 9px; font-size:0.78rem; margin-top:8px; white-space:pre-wrap; }
+  .cc-kv { display:grid; grid-template-columns:auto 1fr; gap:3px 12px; font-size:0.8rem; }
+  .cc-kv > span:nth-child(odd) { color:var(--ink-faint); }
+  .cc-det-sec { border-top:1px solid var(--line); padding:12px 16px; }
+  .cc-det-sec h4 { font-size:0.68rem; text-transform:uppercase; letter-spacing:0.04em; color:var(--ink-faint); margin:0 0 6px; font-weight:600; }
+  .cc-flag { display:inline-block; font-size:0.62rem; font-weight:700; padding:2px 6px; border-radius:6px; margin-top:3px; white-space:normal; }
+  .cc-flag-rep { background:var(--amber-100); color:var(--amber-700); }
+  .cc-flag-hist { background:var(--red-100); color:var(--red-700); }
+  #ccAdmTabla tr { cursor:pointer; }
+  #ccAdmTabla tr.sel td { background:var(--purple-50); }
+  #ccAdmTabla tr.no-visto td:first-child { box-shadow: inset 3px 0 0 #2B5C8A; }
+  #ccAdmTabla td { vertical-align:top; }
+  .cc-badge { background:var(--red-700); color:#fff; font-size:0.62rem; font-weight:700; min-width:16px; height:16px; border-radius:999px; display:inline-flex; align-items:center; justify-content:center; padding:0 4px; margin-left:6px; }
+
+  /* Imagen de cotización / requisitos (estilo de los PDF "Requisitos" de Grupo AMDR).
+     Todo en px para que se vea igual en pantalla y en la imagen exportada. */
+  .cc-img { position:relative; width:100%; max-width:400px; margin:10px auto 0; background:#fff; overflow:hidden; font-family:'Inter', -apple-system, sans-serif; border:1px solid var(--line); padding-bottom:78px; color:#555; }
+  .cc-img * { font-family:'Inter', -apple-system, sans-serif; }
+  .cc-img .d1 { position:absolute; top:-50px; right:-100px; width:320px; height:210px; background:#F4F4F6; transform:rotate(32deg); }
+  .cc-img .d2 { position:absolute; top:-80px; right:-50px; width:190px; height:140px; background:#ECECEF; transform:rotate(32deg); }
+  .cc-img .cuerpo { position:relative; padding:46px 24px 0; }
+  .cc-img .tit { border-left:4px solid #5B2C6F; padding-left:11px; }
+  .cc-img .tit b { display:block; color:#5B2C6F; font-weight:800; font-size:30px; letter-spacing:-0.01em; line-height:1; }
+  .cc-img .tit span { display:block; color:#555; font-size:12px; letter-spacing:0.02em; margin-top:5px; }
+  .cc-img .pill { display:inline-block; background:#5B2C6F; color:#fff; font-weight:700; font-size:11px; padding:6px 12px; margin-top:18px; letter-spacing:0.02em; line-height:1.35; }
+  .cc-img h4 { margin:20px 0 6px; color:#555; font-weight:800; font-size:14px; }
+  .cc-img ul { margin:0; padding-left:4px; color:#555; font-size:12px; line-height:1.65; list-style:none; }
+  .cc-img li { display:flex; gap:8px; }
+  .cc-img li .bul { flex-shrink:0; } /* viñeta a mano: html2canvas dibuja mal las de list-style */
+  .cc-img .nz { display:inline-block; } /* para poder correrlo con data-export-nudge (transform no aplica a inline) */
+  .cc-img .nota { margin-top:12px; font-size:10.5px; color:#5B2C6F; background:#F3ECF6; padding:8px 10px; border-radius:5px; line-height:1.45; }
+  .cc-img .logo { position:absolute; right:22px; bottom:30px; height:32px; width:auto; }
+  .cc-img .franja { position:absolute; left:0; right:0; bottom:0; height:12px; display:flex; }
+  .cc-img .franja i { flex:1; }
+  .cc-img .para { margin-top:14px; font-size:13px; }
+  .cc-img .para b { color:#333; }
+  .cc-img .box { margin-top:12px; border:1px solid #E6DDEB; border-radius:9px; padding:11px 13px; background:#fff; }
+  .cc-img .lab { font-size:10px; font-weight:800; letter-spacing:0.06em; color:#5B2C6F; }
+  .cc-img .auto { font-weight:800; color:#333; font-size:16px; margin-top:3px; line-height:1.25; }
+  .cc-img .sub { font-size:11.5px; color:#777; margin-bottom:8px; }
+  .cc-img .fila { display:flex; justify-content:space-between; gap:8px; font-size:12px; padding:5px 0; border-top:1px dashed #E6DDEB; }
+  .cc-img .fila b { color:#333; white-space:nowrap; }
+  .cc-img .fila.acc b { color:#5B2C6F; font-size:13.5px; }
+  .cc-img .opc div { display:flex; align-items:baseline; gap:4px; font-size:12.5px; padding:7px 10px; border-radius:7px; margin-top:4px; background:#F7F4F9; white-space:nowrap; }
+  .cc-img .opc div b { color:#333; }
+  .cc-img .opc div.on { background:#5B2C6F; color:#E9DDF0; }
+  .cc-img .opc div.on b { color:#fff; }
+  .cc-img .opc div .elegida { margin-left:auto; font-size:9.5px; font-weight:700; letter-spacing:0.04em; }
+  .cc-img .conc { margin-top:18px; font-size:11.5px; line-height:1.55; border-top:1px solid #EEE; padding-top:10px; }
+  .cc-img .conc b { color:#333; }
+  .cc-img .legal { margin-top:10px; font-size:9.5px; color:#999; line-height:1.45; }
+
   /* ===== Propuesta comercial: tipografía estándar, distinta del resto de la app ===== */
   #propuesta-print, #propuesta-print * {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
@@ -345,7 +430,7 @@
           <img src="data:image/jpeg;base64,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" alt="Mutual AMDR" class="h-9 w-9 object-contain rounded-lg">
           <div>
             <p class="font-display text-white text-base leading-tight" style="font-weight:600;">Mutual AMDR</p>
-            <p class="text-[0.68rem] text-[#C9B8D1]">Simulador de Amortizables</p>
+            <p class="brand-sub text-[0.68rem] text-[#C9B8D1]">Simulador de Amortizables</p>
           </div>
         </div>
       </div>
@@ -370,6 +455,11 @@
         <button class="nav-item" data-main-tab="lineas">
           <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
           Líneas de crédito
+        </button>
+        <button class="nav-item hidden" data-main-tab="concesionarias">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M5 13l1.5-4.5A2 2 0 018.4 7h7.2a2 2 0 011.9 1.5L19 13M5 13h14M5 13v4a1 1 0 001 1h1a1 1 0 001-1v-1h8v1a1 1 0 001 1h1a1 1 0 001-1v-4M7.5 15.5h.01M16.5 15.5h.01"/></svg>
+          <span class="nav-conc-label">Concesionarias</span>
+          <span class="badge-conc hidden" style="background:var(--red-700); color:#fff; font-size:0.62rem; font-weight:700; min-width:16px; height:16px; border-radius:999px; display:inline-flex; align-items:center; justify-content:center; padding:0 4px; margin-left:auto;">0</span>
         </button>
         <button class="nav-item solo-admin hidden" data-main-tab="config">
           <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
@@ -398,7 +488,7 @@
         <img src="data:image/jpeg;base64,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" alt="Mutual AMDR" class="h-8 w-8 object-contain rounded-lg">
         <div>
           <p class="font-display text-white text-sm leading-tight" style="font-weight:600;">Mutual AMDR</p>
-          <p class="text-[0.65rem] text-[#C9B8D1]">Simulador de Amortizables</p>
+          <p class="brand-sub text-[0.65rem] text-[#C9B8D1]">Simulador de Amortizables</p>
         </div>
       </div>
       <div class="flex items-center justify-between gap-1 px-3 pb-2">
@@ -408,6 +498,7 @@
           <button class="nav-item whitespace-nowrap" data-main-tab="guardadas">Guardadas</button>
           <button class="nav-item whitespace-nowrap" data-main-tab="historial">Historial<span class="badge-historial hidden" style="background:var(--red-700); color:#fff; font-size:0.6rem; font-weight:700; min-width:15px; height:15px; border-radius:999px; display:inline-flex; align-items:center; justify-content:center; padding:0 3px; margin-left:4px;">0</span></button>
           <button class="nav-item whitespace-nowrap" data-main-tab="lineas">Líneas</button>
+          <button class="nav-item hidden whitespace-nowrap" data-main-tab="concesionarias"><span class="nav-conc-label">Concesionarias</span><span class="badge-conc hidden" style="background:var(--red-700); color:#fff; font-size:0.6rem; font-weight:700; min-width:15px; height:15px; border-radius:999px; display:inline-flex; align-items:center; justify-content:center; padding:0 3px; margin-left:4px;">0</span></button>
           <button class="nav-item solo-admin hidden whitespace-nowrap" data-main-tab="config">Config.</button>
         </div>
         <button id="btnLogoutMobile" class="text-[0.7rem] whitespace-nowrap pl-2" style="color:#D9CBDF;">Salir</button>
@@ -417,8 +508,8 @@
     <div class="main-scroll">
       <!-- ===================== HEADER ===================== -->
       <header class="px-4 sm:px-6 pt-5 pb-4 border-b" style="border-color:var(--line); background:var(--card);">
-        <h1 class="font-display text-xl sm:text-[1.4rem] leading-tight" style="font-weight:600; color:var(--ink);">Simulador de amortizables</h1>
-        <p class="text-xs mt-0.5 italic" style="color:var(--ink-faint);">Un banco de ideas</p>
+        <h1 id="headerTitulo" class="font-display text-xl sm:text-[1.4rem] leading-tight" style="font-weight:600; color:var(--ink);">Simulador de amortizables</h1>
+        <p id="headerSubtitulo" class="text-xs mt-0.5 italic" style="color:var(--ink-faint);">Un banco de ideas</p>
       </header>
 
       <!-- ===================== MAIN: SIMULADOR ===================== -->
@@ -1124,6 +1215,213 @@
         </div>
       </main>
 
+      <!-- ===================== MAIN: CONCESIONARIAS ===================== -->
+      <main id="main-concesionarias" class="main-content px-4 sm:px-6 py-5 hidden">
+
+        <!-- ---------- Vista de la concesionaria ---------- -->
+        <div id="ccDealer" class="hidden" style="max-width:620px; margin:0 auto;">
+          <div class="cc-seg mb-4" id="ccSubtabs">
+            <button type="button" class="on" data-cc="nueva">Nueva consulta</button>
+            <button type="button" data-cc="mis">Mis consultas<span class="badge-conc-sub cc-badge hidden">0</span></button>
+          </div>
+
+          <div id="ccVistaNueva">
+            <div id="ccLineaFaltante" class="cc-no hidden mb-3">El módulo todavía no está configurado por la Mutual (falta la línea de crédito). Avisales para que lo habiliten.</div>
+
+            <div class="cc-paso">
+              <div class="cc-paso-tit"><span class="cc-paso-num">1</span><h3>Cliente</h3></div>
+              <label class="field-label">Tipo de persona</label>
+              <div class="cc-seg" id="ccPersona">
+                <button type="button" class="on" data-p="fisica">Persona física</button>
+                <button type="button" data-p="juridica">Persona jurídica</button>
+              </div>
+              <div id="ccCondWrap" class="mt-3">
+                <label class="field-label">Condición <span style="color:var(--ink-faint);">(podés marcar más de una)</span></label>
+                <div class="cc-seg" id="ccCond">
+                  <button type="button" class="on" data-c="dependencia">Rel. de dependencia</button>
+                  <button type="button" data-c="monotributo">Monotributista</button>
+                  <button type="button" data-c="ri">Resp. inscripto</button>
+                </div>
+                <p class="input-help">Relación de dependencia se puede combinar con monotributista o con responsable inscripto.</p>
+              </div>
+              <div class="mt-3">
+                <label class="field-label" id="ccLabNombre">Nombre y apellido</label>
+                <input id="ccNombre" type="text" class="input-field" autocomplete="off">
+              </div>
+              <div class="mt-3">
+                <label class="field-label">CUIT / CUIL</label>
+                <div class="flex gap-2">
+                  <input id="ccCuit" type="text" class="input-field" placeholder="20123456789" maxlength="13" inputmode="numeric" autocomplete="off">
+                  <button type="button" id="ccBtnVerificar" class="btn btn-secondary btn-sm" style="white-space:nowrap;">Verificar</button>
+                </div>
+              </div>
+              <div id="ccBcra" class="hidden mt-2"></div>
+            </div>
+
+            <div id="ccPasos" class="hidden">
+              <div class="cc-paso">
+                <div class="cc-paso-tit"><span class="cc-paso-num">2</span><h3>Vehículo</h3></div>
+                <div class="cc-seg" id="ccCondAuto">
+                  <button type="button" class="on" data-a="0km">0 km</button>
+                  <button type="button" data-a="usado">Usado</button>
+                </div>
+                <div class="grid grid-cols-2 gap-3 mt-3">
+                  <div><label class="field-label">Marca</label><input id="ccMarca" type="text" class="input-field" autocomplete="off"></div>
+                  <div><label class="field-label">Modelo</label><input id="ccModelo" type="text" class="input-field" autocomplete="off"></div>
+                </div>
+                <div class="grid grid-cols-2 gap-3 mt-3">
+                  <div><label class="field-label">Versión <span style="color:var(--ink-faint);">(opcional)</span></label><input id="ccVersion" type="text" class="input-field" autocomplete="off"></div>
+                  <div id="ccAnioWrap" class="hidden"><label class="field-label">Año</label><select id="ccAnio" class="input-field"></select></div>
+                </div>
+                <p class="input-help" id="ccAnioNota">En 0 km no se pide año.</p>
+                <div class="mt-3">
+                  <label class="field-label">Precio de venta</label>
+                  <input id="ccPrecio" type="text" class="input-field" inputmode="numeric" placeholder="$ 0" autocomplete="off">
+                </div>
+              </div>
+
+              <div class="cc-paso">
+                <div class="cc-paso-tit"><span class="cc-paso-num">3</span><h3>Financiación</h3></div>
+                <div id="ccSinPrecio" class="cc-neutro">Cargá el precio de venta para ver la financiación.</div>
+                <div id="ccFinanciacion" class="hidden">
+                  <div class="cc-resumen" id="ccResumen"></div>
+                  <div class="mt-3">
+                    <label class="field-label">Monto a financiar <span id="ccMontoMaxLabel" style="color:var(--ink-faint);"></span></label>
+                    <input id="ccMonto" type="text" class="input-field" inputmode="numeric" autocomplete="off">
+                    <p id="ccMontoError" class="input-help hidden" style="color:var(--red-700);"></p>
+                  </div>
+                  <label class="field-label mt-3">Elegí el plazo que le interesa al cliente</label>
+                  <div id="ccOpciones"></div>
+                  <p class="text-center mt-2" style="font-size:0.7rem; color:var(--ink-faint);" id="ccLeyenda"></p>
+                </div>
+              </div>
+
+              <div class="cc-paso">
+                <div class="cc-paso-tit"><span class="cc-paso-num">4</span><h3>Para mandarle al cliente</h3></div>
+                <p class="text-xs" style="color:var(--ink-faint);">Cotización con el auto, lo financiado, las opciones de cuotas, los requisitos y los datos de tu concesionaria.</p>
+                <div id="ccCotFaltan" class="cc-neutro mt-3">Completá el vehículo, el precio y el plazo para armar la cotización.</div>
+                <div id="ccCotListo" class="hidden">
+                  <div class="flex gap-2 mt-3">
+                    <button type="button" id="ccBtnDescCot" class="btn btn-primary btn-sm" style="flex:1;">Descargar cotización</button>
+                    <button type="button" id="ccBtnCopCot" class="btn btn-ghost btn-sm" style="flex:1;">Copiar cotización</button>
+                  </div>
+                  <div id="ccCotizacion" class="cc-img"></div>
+                </div>
+                <p class="text-center mt-3" style="font-size:0.75rem; color:var(--ink-faint);">¿Solo los requisitos? <button type="button" id="ccBtnVerReq" style="color:var(--purple-500); text-decoration:underline;">Mostrar</button></p>
+                <div id="ccReqWrap" class="hidden">
+                  <div class="flex gap-2 mt-2">
+                    <button type="button" id="ccBtnDescReq" class="btn btn-secondary btn-sm" style="flex:1;">Descargar requisitos</button>
+                    <button type="button" id="ccBtnCopReq" class="btn btn-ghost btn-sm" style="flex:1;">Copiar requisitos</button>
+                  </div>
+                  <div id="ccRequisitosImg" class="cc-img"></div>
+                </div>
+              </div>
+
+              <div class="cc-paso">
+                <div class="cc-paso-tit"><span class="cc-paso-num">5</span><h3>Enviar a la Mutual</h3></div>
+                <label class="field-label">Comentarios para la Mutual <span style="color:var(--ink-faint);">(opcional)</span></label>
+                <textarea id="ccComentario" class="input-field" rows="2"></textarea>
+                <button type="button" id="ccBtnEnviar" class="btn btn-primary btn-block mt-3">Enviar consulta</button>
+              </div>
+            </div>
+          </div>
+
+          <div id="ccVistaConfirm" class="hidden">
+            <div class="cc-paso text-center" style="padding:28px 20px;">
+              <div style="width:56px; height:56px; border-radius:50%; background:var(--green-100); color:var(--green-700); font-size:1.7rem; display:inline-flex; align-items:center; justify-content:center; margin-bottom:12px;">✓</div>
+              <h3 class="font-display" style="font-size:1.2rem; font-weight:600;">¡Recibimos tu consulta!</h3>
+              <p class="text-sm mt-2" style="color:var(--ink-soft);">Pronto calificaremos al cliente y te daremos respuesta. Podés seguir el estado en <b>Mis consultas</b>.</p>
+              <button type="button" id="ccBtnOtra" class="btn btn-primary btn-block mt-5">Cargar otra consulta</button>
+              <button type="button" id="ccBtnIrMis" class="btn btn-ghost btn-block mt-2">Ver mis consultas</button>
+            </div>
+          </div>
+
+          <div id="ccVistaMis" class="hidden">
+            <div class="cc-seg mb-3" id="ccFiltroMis">
+              <button type="button" class="on" data-f="todas">Todas</button>
+              <button type="button" data-f="curso">En curso</button>
+              <button type="button" data-f="cerradas">Cerradas</button>
+            </div>
+            <div id="ccListaMis"></div>
+          </div>
+        </div>
+
+        <!-- ---------- Vista de admins ---------- -->
+        <div id="ccAdmin" class="hidden">
+          <div class="grid gap-4 lg:grid-cols-[1.3fr_1fr] items-start">
+            <div class="card" style="overflow:hidden;">
+              <div class="px-4 pt-4 pb-2">
+                <h2 class="font-display text-lg" style="font-weight:600;">Consultas de concesionarias<span class="badge-conc-sub cc-badge hidden">0</span></h2>
+                <p class="text-xs mt-0.5" style="color:var(--ink-faint);">Las que cargan las concesionarias. Tocá una para ver el detalle y responder.</p>
+              </div>
+              <div class="flex gap-2 flex-wrap px-4 pb-3" style="border-bottom:1px solid var(--line);">
+                <select id="ccAdmFiltroEstado" class="input-field" style="width:auto;">
+                  <option value="">Todos los estados</option>
+                  <option value="nueva">Recibida</option>
+                  <option value="en_analisis">En análisis</option>
+                  <option value="aprobada">Aprobada</option>
+                  <option value="rechazada">Rechazada</option>
+                </select>
+                <select id="ccAdmFiltroConc" class="input-field" style="width:auto;"></select>
+                <input id="ccAdmBuscar" type="text" class="input-field" placeholder="Buscar cliente o CUIT" style="flex:1; min-width:150px;">
+              </div>
+              <div class="table-wrap" style="border:none; border-radius:0;">
+                <table class="data-table">
+                  <thead><tr><th>Concesionaria</th><th>Cliente</th><th>Vehículo</th><th>Pide</th><th>Estado</th></tr></thead>
+                  <tbody id="ccAdmTabla"></tbody>
+                </table>
+              </div>
+            </div>
+            <div class="card" style="overflow:hidden;" id="ccAdmDetalle">
+              <p class="text-sm text-center py-10 px-4" style="color:var(--ink-faint);">Elegí una consulta de la lista para ver el detalle.</p>
+            </div>
+          </div>
+
+          <div class="card mt-5">
+            <button type="button" id="ccCfgToggle" class="w-full flex items-center justify-between gap-3 p-4 text-left">
+              <div>
+                <h2 class="font-display text-base" style="font-weight:600;">Configuración del módulo</h2>
+                <p class="text-xs mt-0.5" style="color:var(--ink-faint);">Línea de crédito, porcentaje, antigüedad, plazos, documentación y datos de cada concesionaria.</p>
+              </div>
+              <span id="ccCfgFlecha" style="color:var(--ink-faint);">▼</span>
+            </button>
+            <div id="ccCfgCuerpo" class="hidden px-4 pb-5">
+              <div class="grid gap-3 sm:grid-cols-4" style="border-top:1px solid var(--line); padding-top:14px;">
+                <div><label class="field-label">Línea de crédito</label><select id="ccCfgLinea" class="input-field"></select></div>
+                <div><label class="field-label">% que financiamos</label><input id="ccCfgPct" type="number" class="input-field" min="1" max="100" step="1"></div>
+                <div><label class="field-label">Antigüedad máx. (años)</label><input id="ccCfgAntig" type="number" class="input-field" min="0" max="50" step="1"></div>
+                <div><label class="field-label">Plazos a ofrecer (cuotas)</label><input id="ccCfgPlazos" type="text" class="input-field" placeholder="12, 18, 24, 36"></div>
+              </div>
+              <p class="input-help">El plazo máximo es el más alto de la lista. Las tasas salen de la línea elegida, igual que en el resto del simulador.</p>
+
+              <h3 class="font-display text-sm mt-5" style="font-weight:600;">Documentación requerida <span class="font-normal text-xs" style="color:var(--ink-faint); font-family:'IBM Plex Sans',sans-serif;">(un renglón por ítem)</span></h3>
+              <p class="input-help">Si una persona física tiene más de una condición, se juntan las listas sin repetir los ítems iguales, y al final se agregan los de "toda persona física".</p>
+              <div class="grid gap-3 sm:grid-cols-2 mt-3">
+                <div><label class="field-label">Persona física · Relación de dependencia</label><textarea id="ccCfgDocDep" class="input-field" rows="5"></textarea></div>
+                <div><label class="field-label">Persona física · Monotributista</label><textarea id="ccCfgDocMono" class="input-field" rows="5"></textarea></div>
+                <div><label class="field-label">Persona física · Responsable inscripto</label><textarea id="ccCfgDocRI" class="input-field" rows="5"></textarea></div>
+                <div><label class="field-label">Además, para toda persona física</label><textarea id="ccCfgDocComun" class="input-field" rows="5"></textarea></div>
+                <div><label class="field-label">Persona jurídica · Documentación de la empresa</label><textarea id="ccCfgDocEmp" class="input-field" rows="7"></textarea></div>
+                <div><label class="field-label">Persona jurídica · Socios, firmantes y apoderados</label><textarea id="ccCfgDocSoc" class="input-field" rows="7"></textarea></div>
+                <div class="sm:col-span-2"><label class="field-label">Persona jurídica · Aclaración</label><textarea id="ccCfgDocNota" class="input-field" rows="2"></textarea></div>
+              </div>
+              <button type="button" id="ccCfgGuardar" class="btn btn-primary mt-4">Guardar configuración</button>
+
+              <div style="border-top:1px solid var(--line); margin-top:22px; padding-top:16px;">
+                <h3 class="font-display text-sm" style="font-weight:600;">Datos de cada concesionaria</h3>
+                <p class="input-help">Son los que aparecen en la cotización que le mandan al cliente. Podés agregar o borrar campos.</p>
+                <div class="mt-3" style="max-width:320px;"><label class="field-label">Concesionaria</label><select id="ccCfgConcSel" class="input-field"></select></div>
+                <div id="ccCfgConcCampos" class="mt-3"></div>
+                <div class="flex gap-2 mt-3 flex-wrap" id="ccCfgConcBotones">
+                  <button type="button" id="ccCfgConcAgregar" class="btn btn-ghost btn-sm">+ Agregar campo</button>
+                  <button type="button" id="ccCfgConcGuardar" class="btn btn-primary btn-sm">Guardar datos</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+
     </div><!-- /main-scroll -->
   </div><!-- /app-shell -->
 
@@ -1236,7 +1534,7 @@ const db = firebase.firestore();
 // un admin marca una versión nueva como la única válida.
 // IMPORTANTE: subir este número cada vez que se entregue un archivo nuevo.
 // ============================================================
-const APP_VERSION = 66;
+const APP_VERSION = 67;
 let versionBloqueada = false;
 
 const verificarVersion = async () => {
@@ -1318,10 +1616,14 @@ const cerrarSesion = async () => {
   if (unsubUsuarios) unsubUsuarios();
   unsubLineas = null; unsubSimulaciones = null; unsubHistorial = null; unsubHistorialVisto = null; unsubUsuarios = null;
   lineasCache = []; simulacionesCache = []; historialCache = []; usuariosCache = []; historialVistoHasta = null; currentUser = null;
+  desuscribirConcesionarias();
   await auth.signOut();
 };
 
 const suscribirDatos = (uid) => {
+  // Las concesionarias son usuarios externos: solo leen lo suyo (ver módulo Concesionarias).
+  if (esConcesionaria()) return suscribirDatosConcesionaria(uid);
+  asegurarSuscripcionConsultasAdmin();
   unsubLineas = db.collection('lineas').orderBy('nombre').onSnapshot(snap => {
     lineasCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     mostrarLineas();
@@ -1360,7 +1662,9 @@ const suscribirDatos = (uid) => {
         cerrarSesion();
         return;
       }
+      if (yo.rol === 'concesionaria') { location.reload(); return; } // pasó a ser concesionaria: se recarga con esa vista
       currentUser = { ...currentUser, ...yo, uid };
+      asegurarSuscripcionConsultasAdmin();
       aplicarUIRol();
       mostrarLineas();
       cargarDropdownLineas();
@@ -1368,15 +1672,30 @@ const suscribirDatos = (uid) => {
       actualizarBadgeHistorial();
     }
     if (esAdmin()) renderConfigUsuarios();
+    if (esAdmin() && ccCfgAbierta) ccCfgRenderConc();
   }, err => console.error('Error leyendo usuarios:', err));
 };
 
 const aplicarUIRol = () => {
   const admin = esAdmin();
+  const concesionaria = esConcesionaria();
   document.getElementById('userNombre').textContent = currentUser.nombre || currentUser.email;
   const badge = document.getElementById('userRolBadge');
-  badge.textContent = admin ? 'admin' : 'vendedor';
+  badge.textContent = admin ? 'admin' : (concesionaria ? 'concesionaria' : 'vendedor');
   badge.style.background = admin ? 'var(--amber-600)' : 'rgba(255,255,255,0.18)';
+  document.getElementById('headerTitulo').textContent = concesionaria ? 'Financiación para concesionarias' : 'Simulador de amortizables';
+  document.getElementById('headerSubtitulo').textContent = concesionaria ? (currentUser.nombre || '') : 'Un banco de ideas';
+  document.querySelectorAll('.brand-sub').forEach(el => { el.textContent = concesionaria ? 'Financiación prendaria' : 'Simulador de Amortizables'; });
+  document.querySelectorAll('.nav-conc-label').forEach(el => { el.textContent = concesionaria ? 'Consultas' : 'Concesionarias'; });
+
+  // Concesionaria: ve únicamente su módulo.
+  if (concesionaria) {
+    document.querySelectorAll('.solo-admin').forEach(el => el.classList.add('hidden'));
+    document.querySelectorAll('[data-main-tab]').forEach(btn => btn.classList.toggle('hidden', btn.dataset.mainTab !== 'concesionarias'));
+    const activa = document.querySelector('[data-main-tab].active');
+    if (!activa || activa.dataset.mainTab !== 'concesionarias') document.querySelector('[data-main-tab="concesionarias"]').click();
+    return;
+  }
   document.querySelectorAll('.solo-admin').forEach(el => el.classList.toggle('hidden', !admin));
   document.getElementById('lineas-readonly-msg').classList.toggle('hidden', admin);
 
@@ -1387,6 +1706,11 @@ const aplicarUIRol = () => {
   document.querySelectorAll('[data-main-tab]').forEach(btn => {
     const tab = btn.dataset.mainTab;
     if (tab === 'config') return;
+    if (tab === 'concesionarias') { // solo admins (además de las propias concesionarias)
+      btn.classList.toggle('hidden', !admin);
+      if (!admin && btn.classList.contains('active')) tabActivaQuedoOculta = true;
+      return;
+    }
     const oculto = modulosOcultos.includes(tab);
     btn.classList.toggle('hidden', oculto);
     if (oculto && btn.classList.contains('active')) tabActivaQuedoOculta = true;
@@ -1989,6 +2313,7 @@ const renderDetalleConfigUsuario = (u) => {
         <select class="input-field" ${esUnoMismo ? 'disabled title="No podés cambiar tu propio rol"' : ''} onchange="borradoresConfig['${u.uid}'].rol = this.value">
           <option value="vendedor" ${b.rol === 'vendedor' ? 'selected' : ''}>Vendedor</option>
           <option value="admin" ${b.rol === 'admin' ? 'selected' : ''}>Admin</option>
+          <option value="concesionaria" ${b.rol === 'concesionaria' ? 'selected' : ''}>Concesionaria</option>
         </select>
       </div>
       <div>
@@ -3901,6 +4226,7 @@ document.querySelectorAll('.nav-item[data-main-tab]').forEach(btn => {
     if (tabName === 'comparador') { poblarLineasComparador(); if (plazosComparadorActuales.length === 0) plazosComparadorActuales = [6,12,18,24,36]; renderPlazosComparador(); }
     if (tabName === 'historial') { renderHistorialCambios(); marcarHistorialVisto(); }
     if (tabName === 'config') { usuarioConfigAbierto = null; renderConfigUsuarios(); }
+    if (tabName === 'concesionarias') renderConcesionarias();
     window.scrollTo({ top: 0, behavior: 'instant' });
   });
 });
@@ -4046,6 +4372,999 @@ document.getElementById('btnLimpiarGuardadas').addEventListener('click', async (
 // INICIALIZACIÓN
 // ============================================================
 // La fecha, líneas y simulaciones se cargan al iniciar sesión (ver auth.onAuthStateChanged)
+
+// ============================================================
+// MÓDULO CONCESIONARIAS
+// Las concesionarias (rol "concesionaria") cargan consultas de financiación
+// prendaria para sus clientes; los admins las ven y responden.
+// Firestore:
+//  - config/concesionarias  -> reglas del módulo (línea, %, antigüedad, plazos, documentación)
+//  - consultas/{id}         -> cada consulta (la concesionaria solo ve las suyas: lo exigen las reglas)
+//  - usuarios/{uid}.datosContacto -> [{ label, valor }] de cada concesionaria (para la cotización)
+// ============================================================
+const ESTADOS_CONSULTA = {
+  nueva: 'Recibida',
+  en_analisis: 'En análisis',
+  aprobada: 'Aprobada',
+  rechazada: 'Rechazada'
+};
+const ORDEN_CONDICIONES = ['dependencia', 'monotributo', 'ri'];
+const NOMBRE_CONDICION = { dependencia: 'Relación de dependencia', monotributo: 'Monotributista', ri: 'Responsable inscripto' };
+
+const CONFIG_CONC_DEFAULT = {
+  lineaId: null,
+  porcentaje: 60,
+  antiguedadMax: 10,
+  plazos: [12, 18, 24, 36],
+  docs: {
+    dependencia: ['DNI', 'Servicio', 'Últimos 3 recibos de sueldo'],
+    monotributo: ['DNI', 'Servicio', 'Constancia de inscripción AFIP', 'Últimos 6 pagos de monotributo'],
+    ri: ['DNI', 'Servicio', 'Últimas 6 DDJJ de IVA con sus presentaciones', 'Últimas 6 DDJJ de Ingresos Brutos con sus presentaciones', 'Última DDJJ de Ganancias con su presentación'],
+    comunFisica: ['Apellido materno', 'Mail', 'Estado civil'],
+    empresa: ['Estatuto social y modificaciones', 'Última Acta de Asamblea con elección de Directorio', 'Última Acta de Directorio con distribución de cargos', 'Servicio o impuesto a nombre de la empresa (domicilio)', 'Último balance certificado', 'Poderes (si los hubiera)', 'E-mail y teléfono', 'CBU'],
+    socios: ['DNI', 'Servicio (domicilio)', 'E-mail y teléfono'],
+    notaJuridica: 'Antes de presentar la documentación, solicitar a un asesor de la Mutual el formulario de Beneficiarios Finales y el de Persona Políticamente Expuesta.'
+  }
+};
+
+let configConc = null;            // config normalizada (con defaults)
+let configConcGuardada = false;   // si existe el doc config/concesionarias
+let consultasCache = [];
+let lineaConc = null;             // solo para concesionarias (los admins la sacan de lineasCache)
+let lineaConcIdSuscripta = undefined;
+let unsubConsultas = null, unsubConfigConc = null, unsubLineaConc = null, unsubYo = null;
+
+const esConcesionaria = () => currentUser && currentUser.rol === 'concesionaria';
+
+const escHtml = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const parsePesos = (v) => parseInt(String(v == null ? '' : v).replace(/\D/g, ''), 10) || 0;
+const fmtPesos = (n) => fmt(redondearPesos(n), 0);
+const soloDigitos = (v) => String(v || '').replace(/\D/g, '');
+const fmtCuit = (c) => { const d = soloDigitos(c); return d.length === 11 ? `${d.slice(0, 2)}-${d.slice(2, 10)}-${d.slice(10)}` : d; };
+const fechaCorta = (iso) => iso ? new Date(iso).toLocaleDateString('es-AR') : '';
+const fechaHora = (iso) => {
+  if (!iso) return '';
+  const d = new Date(iso);
+  const hoy = new Date();
+  const hora = d.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false });
+  return d.toDateString() === hoy.toDateString() ? `Hoy ${hora}` : `${d.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' })} ${hora}`;
+};
+
+const normalizarConfigConc = (data) => {
+  const d = data || {};
+  const docs = { ...CONFIG_CONC_DEFAULT.docs, ...(d.docs || {}) };
+  const plazos = Array.isArray(d.plazos) && d.plazos.length ? d.plazos : CONFIG_CONC_DEFAULT.plazos;
+  return {
+    lineaId: d.lineaId || null,
+    porcentaje: d.porcentaje > 0 ? d.porcentaje : CONFIG_CONC_DEFAULT.porcentaje,
+    antiguedadMax: d.antiguedadMax >= 0 ? d.antiguedadMax : CONFIG_CONC_DEFAULT.antiguedadMax,
+    plazos: [...new Set(plazos.map(Number).filter(n => n > 0))].sort((a, b) => a - b),
+    docs
+  };
+};
+
+const getLineaConc = () => {
+  if (!configConc || !configConc.lineaId) return null;
+  if (esConcesionaria()) return lineaConc;
+  return lineasCache.find(l => l.id === configConc.lineaId) || null;
+};
+
+// BCRA: no califica si NO está en situación 1 y/o tiene cheques rechazados.
+// (El histórico de 24 meses no bloquea: solo se le marca al admin.)
+const bcraCalifica = (data) => !!(data && data.ok && (data.sinDatos || ((data.situacionActual || 1) <= 1 && !data.tieneChequesRechazados)));
+const motivoNoCalifica = (data) => {
+  const partes = [];
+  if ((data.situacionActual || 1) > 1) partes.push(`situación ${data.situacionActual} en BCRA`);
+  if (data.tieneChequesRechazados) partes.push(`${data.cantidadChequesRechazados || 'tiene'} cheque${data.cantidadChequesRechazados === 1 ? '' : 's'} rechazado${data.cantidadChequesRechazados === 1 ? '' : 's'}`);
+  const txt = partes.join(' y ');
+  return txt.charAt(0).toUpperCase() + txt.slice(1);
+};
+
+// Requisitos según tipo de persona. Si una persona física tiene más de una
+// condición, se juntan las listas sin repetir ítems iguales (DNI, servicio…)
+// y al final van los de "toda persona física".
+const requisitosPara = (tipoPersona, condiciones, cfg) => {
+  const docs = (cfg || configConc || normalizarConfigConc(null)).docs;
+  if (tipoPersona === 'juridica') {
+    return {
+      pill: 'PERSONA JURÍDICA',
+      secciones: [
+        { t: 'DOCUMENTACIÓN DE LA EMPRESA', items: docs.empresa || [] },
+        { t: 'DE SOCIOS, FIRMANTES Y APODERADOS', items: docs.socios || [] }
+      ],
+      nota: docs.notaJuridica || ''
+    };
+  }
+  const conds = ORDEN_CONDICIONES.filter(c => (condiciones || []).includes(c));
+  const items = [];
+  const clave = (s) => s.trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  const agregar = (i) => { if (i && !items.some(x => clave(x) === clave(i))) items.push(i); };
+  conds.forEach(c => (docs[c] || []).forEach(agregar));
+  (docs.comunFisica || []).forEach(agregar);
+  return {
+    pill: 'PERSONA FÍSICA' + (conds.length ? ' · ' + conds.map(c => NOMBRE_CONDICION[c].toUpperCase()).join(' + ') : ''),
+    secciones: [{ t: 'DOCUMENTACIÓN REQUERIDA', items }],
+    nota: ''
+  };
+};
+
+// Opciones de cuotas para un monto neto, con la tasa de la línea del módulo
+// (mismo cálculo que el Comparador de cuotas: capital bruto desde el neto y cuota francesa mensual).
+const calcularOpcionesConc = (monto, linea, plazos, fechaInicio = new Date()) => {
+  if (!linea || !(monto > 0)) return [];
+  return plazos.map(n => {
+    const tramo = linea.tramosTNA && linea.tramosTNA.length > 0 ? buscarTramoTNA(linea.tramosTNA, n) : null;
+    const tna = tramo ? tramo.tna : linea.tna;
+    if (!tna || tna <= 0) return null;
+    const capital = calcularCapitalDesdeNeto(monto, linea, tna, n, fechaInicio, 1, 0);
+    const cuota = calcularCuotaFrances(capital, calcularTEP(tna, 1), n);
+    return { plazo: n, tna, cuota: redondearPesos(cuota) };
+  }).filter(Boolean);
+};
+
+// ---------- Imágenes (cotización / requisitos) ----------
+// html2canvas dibuja el texto unos px más abajo que el navegador (ver aplicarCorreccionesExport):
+// en la imagen exportada se corre hacia arriba el texto que va dentro de cajas o entre líneas.
+const NZ = -6;
+const FRANJA_AMDR = ['#C86B6B', '#E87722', '#0EA0DC', '#4A8471', '#BFC27A', '#5A5068', '#E2063C'];
+const pieImagenAMDR = () => `
+  <img class="logo" src="${document.getElementById('logoPropuesta').src}" alt="Grupo AMDR">
+  <div class="franja">${FRANJA_AMDR.map(c => `<i style="background:${c}"></i>`).join('')}</div>`;
+
+const htmlSeccionesRequisitos = (req, tituloFisica) => req.secciones.map(s => `
+  <h4>${escHtml(s.t === 'DOCUMENTACIÓN REQUERIDA' ? tituloFisica : s.t)}:</h4>
+  <ul>${s.items.map(i => `<li><span class="bul">•</span><span>${escHtml(i)}</span></li>`).join('')}</ul>`).join('')
+  + (req.nota ? `<div class="nota"><span class="nz" data-export-nudge="${NZ}">${escHtml(req.nota)}</span></div>` : '');
+
+const htmlRequisitos = (req) => `
+  <div class="d1"></div><div class="d2"></div>
+  <div class="cuerpo">
+    <div class="tit"><b>REQUISITOS</b><span>FINANCIACIÓN PRENDARIA</span></div>
+    <div class="pill"><span class="nz" data-export-nudge="${NZ}">${escHtml(req.pill)}</span></div>
+    ${htmlSeccionesRequisitos(req, 'DOCUMENTACIÓN REQUERIDA')}
+  </div>
+  ${pieImagenAMDR()}`;
+
+// d = { fecha, cliente:{nombre,tipoPersona,condiciones}, vehiculo:{condicion,marca,modelo,version,anio,precio},
+//       financiacion:{monto, plazo, opciones:[{plazo,cuota}]}, concesionaria:{nombre, datosContacto:[{label,valor}]} }
+const htmlCotizacion = (d) => {
+  const v = d.vehiculo;
+  const f = d.financiacion;
+  const req = requisitosPara(d.cliente.tipoPersona, d.cliente.condiciones);
+  const auto = [v.marca, v.modelo, v.version].filter(Boolean).join(' ');
+  const sub = v.condicion === 'usado' ? `${v.anio} · usado` : '0 km';
+  const contacto = (d.concesionaria.datosContacto || []).filter(c => (c.label || '').trim() || (c.valor || '').trim());
+  return `
+  <div class="d1"></div><div class="d2"></div>
+  <div class="cuerpo">
+    <div class="tit"><b>COTIZACIÓN</b><span>FINANCIACIÓN PRENDARIA</span></div>
+    <p class="para">Propuesta para <b>${escHtml(d.cliente.nombre)}</b></p>
+    <div class="box">
+      <p class="lab">VEHÍCULO</p>
+      <p class="auto">${escHtml(auto)}</p>
+      <p class="sub">${escHtml(sub)}</p>
+      <div class="fila"><span class="nz" data-export-nudge="${NZ}">Precio</span><b class="nz" data-export-nudge="${NZ}">${fmtPesos(v.precio)}</b></div>
+      <div class="fila"><span class="nz" data-export-nudge="${NZ}">Anticipo</span><b class="nz" data-export-nudge="${NZ}">${fmtPesos(v.precio - f.monto)}</b></div>
+      <div class="fila acc"><span class="nz" data-export-nudge="${NZ}">Monto a financiar</span><b class="nz" data-export-nudge="${NZ}">${fmtPesos(f.monto)}</b></div>
+    </div>
+    <h4>OPCIONES DE CUOTAS:</h4>
+    <div class="opc">
+      ${f.opciones.map(o => `<div class="${o.plazo === f.plazo ? 'on' : ''}"><span class="nz" data-export-nudge="${NZ}"><b>${o.plazo}</b> cuotas de <b>${fmtPesos(o.cuota)}</b></span>${o.plazo === f.plazo ? `<span class="elegida nz" data-export-nudge="${NZ}">ELEGIDA</span>` : ''}</div>`).join('')}
+    </div>
+    <div class="pill"><span class="nz" data-export-nudge="${NZ}">${escHtml(req.pill)}</span></div>
+    ${htmlSeccionesRequisitos(req, 'REQUISITOS')}
+    <div class="conc">
+      <p class="lab">TU CONCESIONARIA</p>
+      <p><b>${escHtml(d.concesionaria.nombre)}</b></p>
+      ${contacto.map(c => `<p>${c.label ? escHtml(c.label) + ': ' : ''}${escHtml(c.valor)}</p>`).join('')}
+    </div>
+    <p class="legal">Valores de referencia al ${escHtml(fechaCorta(d.fecha))}. Sujetos a aprobación crediticia.</p>
+  </div>
+  ${pieImagenAMDR()}`;
+};
+
+const nombreArchivoSeguro = (s) => (s || 'cliente').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^\w\s-]/g, '').trim() || 'cliente';
+
+// ---------- Formulario de la concesionaria ----------
+const ccEstadoInicial = () => ({
+  persona: 'fisica',
+  condiciones: ['dependencia'],
+  bcra: null,             // respuesta de /api/bcra para ccCuitVerificado
+  cuitVerificado: null,
+  verificando: false,
+  condAuto: '0km',
+  montoEditado: false,
+  plazo: null,
+  enviando: false
+});
+let cc = ccEstadoInicial();
+
+const ccSetSeg = (contId, attr, valores) => {
+  document.querySelectorAll(`#${contId} button`).forEach(b => b.classList.toggle('on', valores.includes(b.dataset[attr])));
+};
+
+const ccDatosVehiculo = () => ({
+  condicion: cc.condAuto,
+  marca: document.getElementById('ccMarca').value.trim(),
+  modelo: document.getElementById('ccModelo').value.trim(),
+  version: document.getElementById('ccVersion').value.trim(),
+  anio: cc.condAuto === 'usado' ? (parseInt(document.getElementById('ccAnio').value) || null) : null,
+  precio: parsePesos(document.getElementById('ccPrecio').value)
+});
+
+const ccMontoMaximo = (precio) => Math.floor(precio * (configConc ? configConc.porcentaje : 60) / 100);
+
+const ccPoblarAnios = () => {
+  const sel = document.getElementById('ccAnio');
+  const anioActual = new Date().getFullYear();
+  const max = configConc ? configConc.antiguedadMax : 10;
+  const previo = sel.value;
+  const anios = [];
+  for (let a = anioActual; a >= anioActual - max; a--) anios.push(a);
+  sel.innerHTML = '<option value="">Elegí</option>' + anios.map(a => `<option value="${a}">${a}</option>`).join('');
+  if (anios.includes(parseInt(previo))) sel.value = previo;
+  document.getElementById('ccAnioNota').textContent = cc.condAuto === 'usado'
+    ? `Solo se financian autos de hasta ${max} años de antigüedad.`
+    : 'En 0 km no se pide año.';
+};
+
+const ccRenderCliente = () => {
+  ccSetSeg('ccPersona', 'p', [cc.persona]);
+  ccSetSeg('ccCond', 'c', cc.condiciones);
+  document.getElementById('ccCondWrap').classList.toggle('hidden', cc.persona === 'juridica');
+  document.getElementById('ccLabNombre').textContent = cc.persona === 'juridica' ? 'Razón social' : 'Nombre y apellido';
+  const box = document.getElementById('ccBcra');
+  const cuitCambio = cc.bcra && cc.bcra.ok && soloDigitos(document.getElementById('ccCuit').value) !== cc.cuitVerificado;
+  if (cc.verificando) {
+    box.className = 'cc-neutro mt-2';
+    box.textContent = 'Consultando BCRA...';
+  } else if (!cc.bcra || cuitCambio) {
+    box.className = 'hidden mt-2';
+  } else if (!cc.bcra.ok) {
+    box.className = 'cc-neutro mt-2';
+    box.textContent = (cc.bcra.error || 'No se pudo consultar el BCRA.') + ' Probá de nuevo en un momento.';
+  } else if (bcraCalifica(cc.bcra)) {
+    box.className = 'cc-ok mt-2';
+    box.innerHTML = `✓ ${cc.bcra.sinDatos ? 'Sin deudas ni cheques rechazados informados en BCRA.' : 'Situación 1 en BCRA · sin cheques rechazados.'}${cc.bcra.denominacion ? `<br><span style="opacity:0.85;">${escHtml(cc.bcra.denominacion)}</span>` : ''}<br><span style="opacity:0.85;">Podés seguir cargando la consulta.</span>`;
+  } else {
+    box.className = 'cc-no mt-2';
+    box.innerHTML = `✗ <b>No califica</b> · ${escHtml(motivoNoCalifica(cc.bcra))}. Por ahora no podemos financiar a este cliente.`;
+  }
+  const habilitado = !!(cc.bcra && bcraCalifica(cc.bcra) && soloDigitos(document.getElementById('ccCuit').value) === cc.cuitVerificado);
+  document.getElementById('ccPasos').classList.toggle('hidden', !habilitado);
+};
+
+const ccRenderFinanciacion = () => {
+  if (!configConc) return;
+  const linea = getLineaConc();
+  document.getElementById('ccLineaFaltante').classList.toggle('hidden', !!linea || !configConc);
+  const v = ccDatosVehiculo();
+  document.getElementById('ccAnioWrap').classList.toggle('hidden', cc.condAuto !== 'usado');
+  ccSetSeg('ccCondAuto', 'a', [cc.condAuto]);
+
+  const sinPrecio = !(v.precio > 0);
+  document.getElementById('ccSinPrecio').classList.toggle('hidden', !sinPrecio);
+  document.getElementById('ccFinanciacion').classList.toggle('hidden', sinPrecio);
+  let opciones = [];
+  let monto = 0;
+  if (!sinPrecio) {
+    const max = ccMontoMaximo(v.precio);
+    const inputMonto = document.getElementById('ccMonto');
+    if (!cc.montoEditado) inputMonto.value = fmtPesos(max);
+    monto = parsePesos(inputMonto.value);
+    document.getElementById('ccMontoMaxLabel').textContent = `(máx. ${fmtPesos(max)})`;
+    const err = document.getElementById('ccMontoError');
+    let errTxt = '';
+    if (monto > max) errTxt = `No puede superar el ${configConc.porcentaje}% del precio (${fmtPesos(max)}).`;
+    else if (!(monto > 0)) errTxt = 'Ingresá el monto a financiar.';
+    err.textContent = errTxt;
+    err.classList.toggle('hidden', !errTxt);
+    document.getElementById('ccResumen').innerHTML = `
+      <div><div class="lab">Precio</div><div class="val">${fmtPesos(v.precio)}</div></div>
+      <div><div class="lab">Anticipo</div><div class="val">${fmtPesos(Math.max(v.precio - Math.min(monto, max), 0))}</div></div>
+      <div class="acc"><div class="lab">Hasta ${configConc.porcentaje}%</div><div class="val">${fmtPesos(max)}</div></div>`;
+    opciones = errTxt ? [] : calcularOpcionesConc(monto, linea, configConc.plazos);
+    if (opciones.length && !opciones.some(o => o.plazo === cc.plazo)) cc.plazo = opciones[opciones.length - 1].plazo;
+    document.getElementById('ccOpciones').innerHTML = !linea
+      ? '<p class="cc-no">Falta configurar la línea de crédito del módulo.</p>'
+      : (errTxt ? '' : (opciones.map(o => `
+        <button type="button" class="cc-opt ${o.plazo === cc.plazo ? 'on' : ''}" data-plazo="${o.plazo}">
+          <span class="pl">${o.plazo} cuotas</span><span class="cu">${fmtPesos(o.cuota)}</span>
+        </button>`).join('') || '<p class="cc-neutro">No hay plazos con tasa configurada en la línea.</p>'));
+    document.getElementById('ccLeyenda').innerHTML = opciones.length
+      ? `Valores de referencia al ${new Date().toLocaleDateString('es-AR')}.<br><b>Sujeto a aprobación crediticia.</b>` : '';
+  }
+
+  // Cotización y requisitos
+  const nombre = document.getElementById('ccNombre').value.trim();
+  const listo = opciones.length && cc.plazo && v.marca && v.modelo && nombre && (v.condicion === '0km' || v.anio);
+  document.getElementById('ccCotFaltan').classList.toggle('hidden', !!listo);
+  document.getElementById('ccCotListo').classList.toggle('hidden', !listo);
+  if (listo) document.getElementById('ccCotizacion').innerHTML = htmlCotizacion(ccDatosCotizacionForm(opciones, monto));
+  document.getElementById('ccRequisitosImg').innerHTML = htmlRequisitos(requisitosPara(cc.persona, cc.condiciones));
+};
+
+const ccDatosCotizacionForm = (opciones, monto) => ({
+  fecha: new Date().toISOString(),
+  cliente: { nombre: document.getElementById('ccNombre').value.trim(), tipoPersona: cc.persona, condiciones: cc.persona === 'fisica' ? cc.condiciones : [] },
+  vehiculo: ccDatosVehiculo(),
+  financiacion: { monto, plazo: cc.plazo, opciones },
+  concesionaria: { nombre: currentUser.nombre || currentUser.email, datosContacto: currentUser.datosContacto || [] }
+});
+
+const ccRenderFormulario = () => {
+  if (!configConc) return;
+  ccPoblarAnios();
+  ccRenderCliente();
+  ccRenderFinanciacion();
+};
+
+const ccVerificarBCRA = async () => {
+  const cuit = soloDigitos(document.getElementById('ccCuit').value);
+  if (cuit.length !== 11) return showToast('El CUIT debe tener 11 dígitos', 'error');
+  cc.verificando = true;
+  cc.bcra = null;
+  ccRenderCliente();
+  try {
+    const resp = await fetch(`/api/bcra?cuit=${cuit}`);
+    cc.bcra = await resp.json();
+  } catch (err) {
+    cc.bcra = { ok: false, error: 'No se pudo conectar con el servicio del BCRA.' };
+  }
+  cc.verificando = false;
+  cc.cuitVerificado = cc.bcra && cc.bcra.ok ? cuit : null;
+  if (cc.bcra && cc.bcra.ok && cc.bcra.denominacion && !document.getElementById('ccNombre').value.trim()) {
+    document.getElementById('ccNombre').value = cc.bcra.denominacion;
+  }
+  ccRenderFormulario();
+};
+
+const ccResetFormulario = () => {
+  cc = ccEstadoInicial();
+  ['ccNombre', 'ccCuit', 'ccMarca', 'ccModelo', 'ccVersion', 'ccPrecio', 'ccMonto', 'ccComentario'].forEach(id => { document.getElementById(id).value = ''; });
+  document.getElementById('ccAnio').value = '';
+  document.getElementById('ccReqWrap').classList.add('hidden');
+  ccRenderFormulario();
+};
+
+const notificarConsultaNueva = async (consultaId) => {
+  try {
+    const token = await auth.currentUser.getIdToken();
+    await fetch('/api/notificar-consulta', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+      body: JSON.stringify({ consultaId })
+    });
+  } catch (err) {
+    console.warn('No se pudo mandar el aviso por mail:', err);
+  }
+};
+
+const ccEnviarConsulta = async () => {
+  if (cc.enviando) return;
+  const nombre = document.getElementById('ccNombre').value.trim();
+  const cuit = soloDigitos(document.getElementById('ccCuit').value);
+  const v = ccDatosVehiculo();
+  const linea = getLineaConc();
+  if (!nombre) return showToast(cc.persona === 'juridica' ? 'Falta la razón social' : 'Falta el nombre del cliente', 'error');
+  if (cuit !== cc.cuitVerificado || !bcraCalifica(cc.bcra)) return showToast('Verificá el CUIT antes de enviar', 'error');
+  if (cc.persona === 'fisica' && !cc.condiciones.length) return showToast('Elegí la condición del cliente', 'error');
+  if (!v.marca || !v.modelo) return showToast('Completá marca y modelo', 'error');
+  if (v.condicion === 'usado' && !v.anio) return showToast('Elegí el año del auto', 'error');
+  if (!(v.precio > 0)) return showToast('Completá el precio de venta', 'error');
+  if (!linea) return showToast('El módulo no tiene línea de crédito configurada', 'error');
+  const max = ccMontoMaximo(v.precio);
+  const monto = parsePesos(document.getElementById('ccMonto').value);
+  if (!(monto > 0) || monto > max) return showToast(`El monto a financiar tiene que ser hasta ${fmtPesos(max)}`, 'error');
+  const opciones = calcularOpcionesConc(monto, linea, configConc.plazos);
+  const elegida = opciones.find(o => o.plazo === cc.plazo);
+  if (!elegida) return showToast('Elegí un plazo', 'error');
+
+  const ahora = new Date().toISOString();
+  const b = cc.bcra;
+  const consulta = {
+    concesionariaId: currentUser.uid,
+    concesionariaNombre: currentUser.nombre || currentUser.email,
+    fecha: ahora,
+    cliente: { tipoPersona: cc.persona, condiciones: cc.persona === 'fisica' ? ORDEN_CONDICIONES.filter(c => cc.condiciones.includes(c)) : [], nombre, cuit },
+    bcra: {
+      sinDatos: !!b.sinDatos,
+      situacionActual: b.sinDatos ? 1 : (b.situacionActual || 1),
+      tieneChequesRechazados: !!b.tieneChequesRechazados,
+      cantidadChequesRechazados: b.cantidadChequesRechazados || 0,
+      historicoConAlerta: !!b.historicoConAlerta,
+      denominacion: b.denominacion || null,
+      motivos: b.motivos || [],
+      consultadoEn: ahora
+    },
+    vehiculo: { condicion: v.condicion, marca: v.marca, modelo: v.modelo, version: v.version || '', anio: v.anio || null, precio: v.precio },
+    financiacion: {
+      porcentajeMax: configConc.porcentaje,
+      montoMaximo: max,
+      monto,
+      plazo: elegida.plazo,
+      cuota: elegida.cuota,
+      tna: elegida.tna,
+      lineaId: linea.id,
+      lineaNombre: linea.nombre || '',
+      opciones: opciones.map(o => ({ plazo: o.plazo, cuota: o.cuota, tna: o.tna }))
+    },
+    comentarioConcesionaria: document.getElementById('ccComentario').value.trim(),
+    estado: 'nueva',
+    comentarioAdmin: '',
+    actualizadoEn: ahora,
+    vistoPorAdmin: false,
+    vistoPorConcesionaria: true
+  };
+
+  cc.enviando = true;
+  const btn = document.getElementById('ccBtnEnviar');
+  btn.disabled = true;
+  btn.textContent = 'Enviando...';
+  try {
+    const ref = await db.collection('consultas').add(consulta);
+    notificarConsultaNueva(ref.id); // no se espera: el mail no bloquea la carga
+    ccResetFormulario();
+    ccMostrarVista('confirm');
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  } catch (err) {
+    showToast('No se pudo enviar la consulta: ' + err.message, 'error');
+  } finally {
+    cc.enviando = false;
+    btn.disabled = false;
+    btn.textContent = 'Enviar consulta';
+  }
+};
+
+// ---------- Mis consultas (concesionaria) ----------
+let ccFiltroMis = 'todas';
+let ccMisAbierta = null;
+
+const datosCotizacionDeConsulta = (c, concesionaria) => ({
+  fecha: c.fecha,
+  cliente: c.cliente,
+  vehiculo: c.vehiculo,
+  financiacion: { monto: c.financiacion.monto, plazo: c.financiacion.plazo, opciones: c.financiacion.opciones || [] },
+  concesionaria
+});
+
+const htmlDetalleVehiculo = (c) => {
+  const v = c.vehiculo;
+  return `${escHtml([v.marca, v.modelo, v.version].filter(Boolean).join(' '))} · ${v.condicion === 'usado' ? escHtml(v.anio) + ' · usado' : '0 km'}`;
+};
+const textoTipoCliente = (cl) => cl.tipoPersona === 'juridica'
+  ? 'Persona jurídica'
+  : 'Persona física · ' + ORDEN_CONDICIONES.filter(c => (cl.condiciones || []).includes(c)).map(c => NOMBRE_CONDICION[c]).join(' + ');
+
+const ccRenderMis = () => {
+  ccSetSeg('ccFiltroMis', 'f', [ccFiltroMis]);
+  const lista = [...consultasCache]
+    .filter(c => ccFiltroMis === 'todas' || (ccFiltroMis === 'curso' ? ['nueva', 'en_analisis'].includes(c.estado) : ['aprobada', 'rechazada'].includes(c.estado)))
+    .sort((a, b) => (b.fecha || '').localeCompare(a.fecha || ''));
+  const cont = document.getElementById('ccListaMis');
+  if (!lista.length) {
+    cont.innerHTML = `<p class="text-sm text-center py-8" style="color:var(--ink-faint);">${consultasCache.length ? 'No hay consultas en este filtro.' : 'Todavía no cargaste consultas.'}</p>`;
+    return;
+  }
+  cont.innerHTML = lista.map(c => {
+    const abierta = ccMisAbierta === c.id;
+    const novedad = c.vistoPorConcesionaria === false;
+    return `
+    <div class="cc-card ${novedad ? 'novedad' : ''}">
+      ${novedad ? '<span class="punto"></span>' : ''}
+      <button type="button" class="w-full text-left" onclick="ccToggleMis('${c.id}')">
+        <p style="font-weight:600; padding-right:16px;">${escHtml(c.cliente.nombre)}</p>
+        <p class="text-xs" style="color:var(--ink-faint);">${htmlDetalleVehiculo(c)}</p>
+        <div class="flex justify-between items-center gap-2 mt-2">
+          <span class="cc-estado cc-e-${c.estado}">${ESTADOS_CONSULTA[c.estado] || c.estado}</span>
+          <span class="text-xs" style="color:var(--ink-faint); white-space:nowrap;">${fmtPesos(c.financiacion.monto)} · ${c.financiacion.plazo} cuotas</span>
+        </div>
+        ${c.comentarioAdmin ? `<div class="cc-comentario"><b>Mutual:</b> ${escHtml(c.comentarioAdmin)}</div>` : ''}
+        <p class="text-xs mt-2" style="color:var(--ink-faint);">Cargada el ${fechaCorta(c.fecha)}${c.actualizadoEn && c.actualizadoEn !== c.fecha ? ' · actualizada el ' + fechaCorta(c.actualizadoEn) : ''} <span style="float:right;">${abierta ? 'Cerrar ▲' : 'Ver detalle ▼'}</span></p>
+      </button>
+      ${abierta ? `
+        <div style="border-top:1px solid var(--line); margin-top:10px; padding-top:10px;">
+          <div class="cc-kv">
+            <span>CUIT</span><span>${fmtCuit(c.cliente.cuit)}</span>
+            <span>Tipo</span><span>${escHtml(textoTipoCliente(c.cliente))}</span>
+            <span>Precio</span><span>${fmtPesos(c.vehiculo.precio)}</span>
+            <span>Financia</span><span>${fmtPesos(c.financiacion.monto)} en ${c.financiacion.plazo} cuotas de ${fmtPesos(c.financiacion.cuota)}</span>
+          </div>
+          ${c.comentarioConcesionaria ? `<p class="text-xs mt-2" style="color:var(--ink-soft);"><b>Tu comentario:</b> ${escHtml(c.comentarioConcesionaria)}</p>` : ''}
+          <div class="flex gap-2 mt-3">
+            <button type="button" class="btn btn-primary btn-sm" style="flex:1;" onclick="ccDescargarCotMis('${c.id}')">Descargar cotización</button>
+            <button type="button" class="btn btn-ghost btn-sm" style="flex:1;" onclick="copiarImagen('ccCotMis', '#ffffff')">Copiar cotización</button>
+          </div>
+          <p class="text-xs mt-1" style="color:var(--ink-faint);">La cotización se arma con los valores del día en que se cargó la consulta.</p>
+          <div id="ccCotMis" class="cc-img">${htmlCotizacion(datosCotizacionDeConsulta(c, { nombre: currentUser.nombre || currentUser.email, datosContacto: currentUser.datosContacto || [] }))}</div>
+        </div>` : ''}
+    </div>`;
+  }).join('');
+};
+
+const ccToggleMis = (id) => {
+  ccMisAbierta = ccMisAbierta === id ? null : id;
+  const c = consultasCache.find(x => x.id === id);
+  if (ccMisAbierta && c && c.vistoPorConcesionaria === false) {
+    db.collection('consultas').doc(id).update({ vistoPorConcesionaria: true }).catch(err => console.error(err));
+  }
+  ccRenderMis();
+};
+const ccDescargarCotMis = (id) => {
+  const c = consultasCache.find(x => x.id === id);
+  descargarImagen('ccCotMis', 'AMDR_Cotizacion', '#ffffff', nombreArchivoSeguro(c && c.cliente.nombre));
+};
+window.ccToggleMis = ccToggleMis;
+window.ccDescargarCotMis = ccDescargarCotMis;
+
+let ccVistaActual = 'nueva';
+const ccMostrarVista = (vista) => {
+  ccVistaActual = vista;
+  document.getElementById('ccVistaNueva').classList.toggle('hidden', vista !== 'nueva');
+  document.getElementById('ccVistaConfirm').classList.toggle('hidden', vista !== 'confirm');
+  document.getElementById('ccVistaMis').classList.toggle('hidden', vista !== 'mis');
+  ccSetSeg('ccSubtabs', 'cc', [vista === 'mis' ? 'mis' : 'nueva']);
+  if (vista === 'mis') ccRenderMis();
+};
+
+// ---------- Badges ----------
+const actualizarBadgeConc = () => {
+  let n = 0;
+  if (esConcesionaria()) n = consultasCache.filter(c => c.vistoPorConcesionaria === false).length;
+  else if (esAdmin()) n = consultasCache.filter(c => c.vistoPorAdmin === false).length;
+  document.querySelectorAll('.badge-conc, .badge-conc-sub').forEach(b => {
+    b.textContent = n > 99 ? '99+' : String(n);
+    b.classList.toggle('hidden', n === 0);
+  });
+};
+
+// ---------- Vista de admins ----------
+let ccAdmSel = null;
+let ccCfgAbierta = false;
+let ccCfgConcUid = null;
+let ccCfgCampos = [];
+
+const DIAS_CUIT_REPETIDO = 90;
+const consultasRepetidas = (c) => consultasCache.filter(o =>
+  o.id !== c.id && o.cliente && o.cliente.cuit === c.cliente.cuit &&
+  Math.abs(new Date(o.fecha) - new Date(c.fecha)) <= DIAS_CUIT_REPETIDO * 86400000
+).sort((a, b) => (b.fecha || '').localeCompare(a.fecha || ''));
+
+const ccAdmFiltradas = () => {
+  const est = document.getElementById('ccAdmFiltroEstado').value;
+  const conc = document.getElementById('ccAdmFiltroConc').value;
+  const q = document.getElementById('ccAdmBuscar').value.trim().toLowerCase();
+  const qDig = soloDigitos(q);
+  return [...consultasCache]
+    .filter(c => !est || c.estado === est)
+    .filter(c => !conc || c.concesionariaId === conc)
+    .filter(c => !q || (c.cliente.nombre || '').toLowerCase().includes(q) || (qDig && (c.cliente.cuit || '').includes(qDig)))
+    .sort((a, b) => (b.fecha || '').localeCompare(a.fecha || ''));
+};
+
+const ccRenderAdminTabla = () => {
+  const sel = document.getElementById('ccAdmFiltroConc');
+  const previo = sel.value;
+  const concs = {};
+  consultasCache.forEach(c => { concs[c.concesionariaId] = c.concesionariaNombre; });
+  sel.innerHTML = '<option value="">Todas las concesionarias</option>' + Object.entries(concs)
+    .sort((a, b) => (a[1] || '').localeCompare(b[1] || ''))
+    .map(([id, n]) => `<option value="${id}">${escHtml(n)}</option>`).join('');
+  if (concs[previo]) sel.value = previo;
+
+  const lista = ccAdmFiltradas();
+  const tbody = document.getElementById('ccAdmTabla');
+  if (!lista.length) {
+    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--ink-faint); padding:24px; white-space:normal;">${consultasCache.length ? 'No hay consultas con estos filtros.' : 'Todavía no llegaron consultas.'}</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = lista.map(c => {
+    const rep = consultasRepetidas(c);
+    const flags = [];
+    if (rep.length) flags.push(`<span class="cc-flag cc-flag-rep">⚠ CUIT ya consultado (${escHtml(rep[0].concesionariaNombre)}, ${fechaCorta(rep[0].fecha)})</span>`);
+    if (c.bcra && c.bcra.historicoConAlerta) flags.push('<span class="cc-flag cc-flag-hist">BCRA: sit. 2+ en últimos 24 meses</span>');
+    return `
+      <tr class="${c.id === ccAdmSel ? 'sel' : ''} ${c.vistoPorAdmin === false ? 'no-visto' : ''}" onclick="ccAdmSeleccionar('${c.id}')">
+        <td style="white-space:normal; min-width:105px;">${escHtml(c.concesionariaNombre)}<br><span style="color:var(--ink-faint); font-size:0.72rem;">${fechaHora(c.fecha)}</span></td>
+        <td style="white-space:normal; min-width:150px;"><b>${escHtml(c.cliente.nombre)}</b><br><span style="color:var(--ink-faint); font-size:0.72rem;">${fmtCuit(c.cliente.cuit)}</span>${flags.length ? '<br>' + flags.join('<br>') : ''}</td>
+        <td style="white-space:normal; min-width:110px;">${escHtml([c.vehiculo.marca, c.vehiculo.modelo].join(' '))}<br><span style="color:var(--ink-faint); font-size:0.72rem;">${c.vehiculo.condicion === 'usado' ? escHtml(c.vehiculo.anio) + ' · usado' : '0 km'}</span></td>
+        <td>${fmtPesos(c.financiacion.monto)}<br><span style="color:var(--ink-faint); font-size:0.72rem;">${c.financiacion.plazo} cuotas</span></td>
+        <td><span class="cc-estado cc-e-${c.estado}">${ESTADOS_CONSULTA[c.estado] || c.estado}</span></td>
+      </tr>`;
+  }).join('');
+};
+
+const htmlBcraAdmin = (b) => {
+  if (!b) return '<p class="text-xs">Sin datos.</p>';
+  const ok = bcraCalifica({ ok: true, ...b });
+  const partes = [];
+  if (b.sinDatos) partes.push('Sin registros en BCRA');
+  else {
+    partes.push(`Situación ${b.situacionActual}`);
+    partes.push(b.tieneChequesRechazados ? `${b.cantidadChequesRechazados} cheque(s) rechazado(s)` : 'sin cheques rechazados');
+    partes.push(b.historicoConAlerta ? 'tuvo situación 2+ en los últimos 24 meses' : 'sin alertas en 24 meses');
+  }
+  return `<div class="${ok && !b.historicoConAlerta ? 'cc-ok' : 'cc-no'}" style="padding:8px 10px;">${ok ? '✓' : '✗'} ${escHtml(partes.join(' · '))}${b.denominacion ? `<br><span style="opacity:0.85;">${escHtml(b.denominacion)}</span>` : ''}</div>`;
+};
+
+const ccRenderAdminDetalle = () => {
+  const cont = document.getElementById('ccAdmDetalle');
+  const c = consultasCache.find(x => x.id === ccAdmSel);
+  if (!c) {
+    cont.innerHTML = '<p class="text-sm text-center py-10 px-4" style="color:var(--ink-faint);">Elegí una consulta de la lista para ver el detalle.</p>';
+    return;
+  }
+  const f = c.financiacion;
+  const rep = consultasRepetidas(c);
+  const conc = usuariosCache.find(u => u.uid === c.concesionariaId);
+  cont.innerHTML = `
+    <div class="px-4 pt-4 pb-3">
+      <p class="text-xs" style="color:var(--ink-faint);">${escHtml(c.concesionariaNombre)} · cargada ${fechaHora(c.fecha).replace('Hoy', 'hoy')}</p>
+      <h3 class="font-display text-lg" style="font-weight:600;">${escHtml(c.cliente.nombre)}</h3>
+    </div>
+    <div class="cc-det-sec"><h4>Cliente</h4>
+      <div class="cc-kv"><span>CUIT</span><span>${fmtCuit(c.cliente.cuit)}</span><span>Tipo</span><span>${escHtml(textoTipoCliente(c.cliente))}</span></div>
+      ${rep.length ? `<div class="cc-flag cc-flag-rep" style="margin-top:8px; font-size:0.72rem;">⚠ Este CUIT ya se consultó en los últimos ${DIAS_CUIT_REPETIDO} días: ${rep.map(r => `${escHtml(r.concesionariaNombre)} (${fechaCorta(r.fecha)}, ${ESTADOS_CONSULTA[r.estado] || r.estado})`).join(' · ')}</div>` : ''}
+    </div>
+    <div class="cc-det-sec"><h4>BCRA al momento de cargar</h4>${htmlBcraAdmin(c.bcra)}</div>
+    <div class="cc-det-sec"><h4>Vehículo</h4>
+      <div class="cc-kv"><span>Auto</span><span>${htmlDetalleVehiculo(c)}</span><span>Precio</span><span>${fmtPesos(c.vehiculo.precio)}</span></div>
+    </div>
+    <div class="cc-det-sec"><h4>Financiación pedida</h4>
+      <div class="cc-kv">
+        <span>Monto</span><span>${fmtPesos(f.monto)} (${c.vehiculo.precio ? fmtNum(f.monto / c.vehiculo.precio * 100, 1) : '–'}% del precio)</span>
+        <span>Plazo</span><span>${f.plazo} cuotas de ${fmtPesos(f.cuota)}</span>
+        <span>Línea</span><span>${escHtml(f.lineaNombre || '')} · TNA ${fmtNum(f.tna)}% al cargar</span>
+      </div>
+      <div class="flex gap-2 flex-wrap mt-3">
+        <button type="button" class="btn btn-ghost btn-sm" onclick="ccAbrirEnSimulador('${c.id}')">Abrir en el simulador</button>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="ccAdmVerCot('${c.id}')">${ccAdmCotVisible === c.id ? 'Ocultar cotización' : 'Ver cotización'}</button>
+      </div>
+      ${ccAdmCotVisible === c.id ? `
+        <div class="flex gap-2 mt-3">
+          <button type="button" class="btn btn-primary btn-sm" style="flex:1;" onclick="descargarImagen('ccCotAdm', 'AMDR_Cotizacion', '#ffffff', nombreArchivoSeguro(consultasCache.find(x => x.id === '${c.id}').cliente.nombre))">Descargar</button>
+          <button type="button" class="btn btn-ghost btn-sm" style="flex:1;" onclick="copiarImagen('ccCotAdm', '#ffffff')">Copiar</button>
+        </div>
+        <div id="ccCotAdm" class="cc-img">${htmlCotizacion(datosCotizacionDeConsulta(c, { nombre: c.concesionariaNombre, datosContacto: (conc && conc.datosContacto) || [] }))}</div>` : ''}
+    </div>
+    ${c.comentarioConcesionaria ? `<div class="cc-det-sec"><h4>Comentario de la concesionaria</h4><p style="font-size:0.82rem; white-space:pre-wrap;">${escHtml(c.comentarioConcesionaria)}</p></div>` : ''}
+    <div class="cc-det-sec" style="background:var(--purple-50);"><h4>Tu respuesta</h4>
+      <label class="field-label">Estado</label>
+      <select id="ccAdmEstado" class="input-field">
+        ${Object.entries(ESTADOS_CONSULTA).map(([k, n]) => `<option value="${k}" ${c.estado === k ? 'selected' : ''}>${n}</option>`).join('')}
+      </select>
+      <label class="field-label mt-2">Comentario para la concesionaria</label>
+      <textarea id="ccAdmComentario" class="input-field" rows="3" placeholder="Ej: Falta el último recibo de sueldo">${escHtml(c.comentarioAdmin || '')}</textarea>
+      <button type="button" class="btn btn-primary btn-block mt-3" onclick="ccAdmGuardar('${c.id}')">Guardar</button>
+      <p class="input-help">La concesionaria lo ve en "Mis consultas" con un aviso de novedad (no le llega mail).</p>
+      <button type="button" class="text-xs mt-3" style="color:var(--red-700); text-decoration:underline;" onclick="ccAdmEliminar('${c.id}')">Eliminar consulta</button>
+    </div>`;
+};
+
+let ccAdmCotVisible = null;
+const ccAdmVerCot = (id) => { ccAdmCotVisible = ccAdmCotVisible === id ? null : id; ccRenderAdminDetalle(); };
+
+const ccAdmSeleccionar = (id) => {
+  ccAdmSel = id;
+  ccAdmCotVisible = null;
+  const c = consultasCache.find(x => x.id === id);
+  if (c && c.vistoPorAdmin === false) {
+    db.collection('consultas').doc(id).update({ vistoPorAdmin: true }).catch(err => console.error(err));
+  }
+  ccRenderAdminTabla();
+  ccRenderAdminDetalle();
+  if (window.innerWidth < 1024) document.getElementById('ccAdmDetalle').scrollIntoView({ behavior: 'smooth', block: 'start' });
+};
+
+const ccAdmGuardar = async (id) => {
+  const c = consultasCache.find(x => x.id === id);
+  if (!c) return;
+  const estado = document.getElementById('ccAdmEstado').value;
+  const comentarioAdmin = document.getElementById('ccAdmComentario').value.trim();
+  if (estado === c.estado && comentarioAdmin === (c.comentarioAdmin || '')) return showToast('No hay cambios para guardar', 'info');
+  try {
+    await db.collection('consultas').doc(id).update({
+      estado, comentarioAdmin,
+      actualizadoEn: new Date().toISOString(),
+      actualizadoPor: currentUser.email,
+      vistoPorConcesionaria: false,
+      vistoPorAdmin: true
+    });
+    showToast('Respuesta guardada', 'success');
+  } catch (err) {
+    showToast('No se pudo guardar: ' + err.message, 'error');
+  }
+};
+
+const ccAdmEliminar = async (id) => {
+  const c = consultasCache.find(x => x.id === id);
+  if (!c || !confirm(`¿Eliminar la consulta de ${c.cliente.nombre}? No se puede deshacer y la concesionaria también deja de verla.`)) return;
+  try {
+    await db.collection('consultas').doc(id).delete();
+    ccAdmSel = null;
+    showToast('Consulta eliminada', 'success');
+  } catch (err) {
+    showToast('No se pudo eliminar: ' + err.message, 'error');
+  }
+};
+
+const ccAbrirEnSimulador = (id) => {
+  const c = consultasCache.find(x => x.id === id);
+  if (!c) return;
+  const sel = document.getElementById('lineaSeleccionada');
+  sel.value = c.financiacion.lineaId;
+  if (sel.value !== c.financiacion.lineaId) {
+    showToast('No tenés visible la línea de esta consulta en el simulador', 'error');
+    sel.value = '';
+  }
+  document.getElementById('periodicidad').value = '1';
+  document.getElementById('cliente').value = c.cliente.nombre;
+  document.getElementById('cuit').value = c.cliente.cuit;
+  document.getElementById('monto').value = c.financiacion.monto;
+  document.getElementById('plazo').value = c.financiacion.plazo;
+  document.getElementById('gracia').value = 0;
+  document.getElementById('fecha').valueAsDate = new Date();
+  aplicarLinea();
+  aplicarTNAPorPlazoLinea();
+  document.querySelector('[data-main-tab="simulador"]').click();
+  try { calcular(); } catch (err) { console.error(err); }
+};
+
+window.ccAdmSeleccionar = ccAdmSeleccionar;
+window.ccAdmGuardar = ccAdmGuardar;
+window.ccAdmEliminar = ccAdmEliminar;
+window.ccAbrirEnSimulador = ccAbrirEnSimulador;
+window.ccAdmVerCot = ccAdmVerCot;
+window.nombreArchivoSeguro = nombreArchivoSeguro;
+
+// ---------- Configuración del módulo (admins) ----------
+const lineasTexto = (arr) => (arr || []).join('\n');
+const textoLineas = (id) => document.getElementById(id).value.split('\n').map(s => s.trim()).filter(Boolean);
+
+const ccCfgCargarCampos = () => {
+  const cfg = configConc || normalizarConfigConc(null);
+  const selLinea = document.getElementById('ccCfgLinea');
+  const lineasPrestamo = lineasCache.filter(l => (l.tipo || 'prestamo') !== 'cheque');
+  let lineaId = cfg.lineaId;
+  if (!lineaId) {
+    const prendario = lineasPrestamo.find(l => (l.nombre || '').toLowerCase().includes('prendario'));
+    lineaId = prendario ? prendario.id : '';
+  }
+  selLinea.innerHTML = '<option value="">Elegí una línea</option>' + lineasPrestamo.map(l => `<option value="${l.id}">${escHtml(l.nombre)}</option>`).join('');
+  selLinea.value = lineaId || '';
+  document.getElementById('ccCfgPct').value = cfg.porcentaje;
+  document.getElementById('ccCfgAntig').value = cfg.antiguedadMax;
+  document.getElementById('ccCfgPlazos').value = cfg.plazos.join(', ');
+  document.getElementById('ccCfgDocDep').value = lineasTexto(cfg.docs.dependencia);
+  document.getElementById('ccCfgDocMono').value = lineasTexto(cfg.docs.monotributo);
+  document.getElementById('ccCfgDocRI').value = lineasTexto(cfg.docs.ri);
+  document.getElementById('ccCfgDocComun').value = lineasTexto(cfg.docs.comunFisica);
+  document.getElementById('ccCfgDocEmp').value = lineasTexto(cfg.docs.empresa);
+  document.getElementById('ccCfgDocSoc').value = lineasTexto(cfg.docs.socios);
+  document.getElementById('ccCfgDocNota').value = cfg.docs.notaJuridica || '';
+};
+
+const ccCfgGuardar = async () => {
+  const lineaId = document.getElementById('ccCfgLinea').value;
+  const porcentaje = parseFloat(document.getElementById('ccCfgPct').value);
+  const antiguedadMax = parseInt(document.getElementById('ccCfgAntig').value);
+  const plazos = [...new Set(document.getElementById('ccCfgPlazos').value.split(/[,\s;]+/).map(x => parseInt(x)).filter(n => n > 0))].sort((a, b) => a - b);
+  if (!lineaId) return showToast('Elegí la línea de crédito', 'error');
+  if (!(porcentaje > 0 && porcentaje <= 100)) return showToast('El porcentaje tiene que estar entre 1 y 100', 'error');
+  if (!(antiguedadMax >= 0)) return showToast('Revisá la antigüedad máxima', 'error');
+  if (!plazos.length) return showToast('Cargá al menos un plazo', 'error');
+  const datos = {
+    lineaId, porcentaje, antiguedadMax, plazos,
+    docs: {
+      dependencia: textoLineas('ccCfgDocDep'),
+      monotributo: textoLineas('ccCfgDocMono'),
+      ri: textoLineas('ccCfgDocRI'),
+      comunFisica: textoLineas('ccCfgDocComun'),
+      empresa: textoLineas('ccCfgDocEmp'),
+      socios: textoLineas('ccCfgDocSoc'),
+      notaJuridica: document.getElementById('ccCfgDocNota').value.trim()
+    },
+    actualizadoPor: currentUser.email,
+    actualizadoEn: new Date().toISOString()
+  };
+  try {
+    await db.collection('config').doc('concesionarias').set(datos);
+    showToast('Configuración guardada', 'success');
+  } catch (err) {
+    showToast('No se pudo guardar: ' + err.message, 'error');
+  }
+};
+
+const ccCfgRenderConc = () => {
+  const concs = usuariosCache.filter(u => u.rol === 'concesionaria');
+  const sel = document.getElementById('ccCfgConcSel');
+  const campos = document.getElementById('ccCfgConcCampos');
+  const botones = document.getElementById('ccCfgConcBotones');
+  if (!concs.length) {
+    sel.innerHTML = '<option value="">—</option>';
+    campos.innerHTML = '<p class="text-xs" style="color:var(--ink-faint);">Todavía no hay usuarios con rol Concesionaria. El rol se asigna desde Configuración.</p>';
+    botones.classList.add('hidden');
+    return;
+  }
+  botones.classList.remove('hidden');
+  if (!concs.some(u => u.uid === ccCfgConcUid)) {
+    ccCfgConcUid = concs[0].uid;
+    ccCfgCampos = (concs[0].datosContacto || []).map(c => ({ ...c }));
+    if (!ccCfgCampos.length) ccCfgCampos = [{ label: 'Dirección', valor: '' }, { label: 'Teléfono', valor: '' }];
+  }
+  sel.innerHTML = concs.map(u => `<option value="${u.uid}">${escHtml(u.nombre || u.email)}</option>`).join('');
+  sel.value = ccCfgConcUid;
+  campos.innerHTML = `
+    <div style="display:grid; grid-template-columns:minmax(90px,170px) 1fr 34px; gap:8px; align-items:center;">
+      <span class="field-label" style="margin:0;">Nombre del campo</span><span class="field-label" style="margin:0;">Valor</span><span></span>
+      ${ccCfgCampos.map((c, i) => `
+        <input class="input-field" value="${escHtml(c.label)}" oninput="ccCfgCampos[${i}].label = this.value" placeholder="Ej: Teléfono">
+        <input class="input-field" value="${escHtml(c.valor)}" oninput="ccCfgCampos[${i}].valor = this.value">
+        <button type="button" class="btn btn-secondary btn-sm" style="padding:6px;" onclick="ccCfgQuitarCampo(${i})" title="Borrar campo">✕</button>`).join('')}
+    </div>
+    ${ccCfgCampos.length ? '' : '<p class="text-xs" style="color:var(--ink-faint);">Sin campos: en la cotización sale solo el nombre.</p>'}`;
+};
+const ccCfgQuitarCampo = (i) => { ccCfgCampos.splice(i, 1); ccCfgRenderConc(); };
+window.ccCfgQuitarCampo = ccCfgQuitarCampo;
+
+const ccCfgGuardarConc = async () => {
+  if (!ccCfgConcUid) return;
+  const datosContacto = ccCfgCampos.map(c => ({ label: (c.label || '').trim(), valor: (c.valor || '').trim() })).filter(c => c.label || c.valor);
+  try {
+    await db.collection('usuarios').doc(ccCfgConcUid).set({ datosContacto }, { merge: true });
+    showToast('Datos de la concesionaria guardados', 'success');
+  } catch (err) {
+    showToast('No se pudo guardar: ' + err.message, 'error');
+  }
+};
+
+// ---------- Render general / suscripciones ----------
+const renderConcesionarias = () => {
+  const dealer = esConcesionaria();
+  const admin = esAdmin();
+  document.getElementById('ccDealer').classList.toggle('hidden', !dealer);
+  document.getElementById('ccAdmin').classList.toggle('hidden', !admin);
+  if (dealer) {
+    ccRenderFormulario();
+    if (ccVistaActual === 'mis') ccRenderMis();
+  }
+  if (admin) {
+    ccRenderAdminTabla();
+    ccRenderAdminDetalle();
+    if (ccCfgAbierta) ccCfgRenderConc();
+  }
+  actualizarBadgeConc();
+};
+
+const recibirConsultas = (snap) => {
+  consultasCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  renderConcesionarias();
+};
+
+const suscribirConfigConc = () => {
+  if (unsubConfigConc) return;
+  unsubConfigConc = db.collection('config').doc('concesionarias').onSnapshot(doc => {
+    configConcGuardada = doc.exists;
+    configConc = normalizarConfigConc(doc.exists ? doc.data() : null);
+    if (esConcesionaria()) suscribirLineaConc();
+    if (esAdmin() && ccCfgAbierta) ccCfgCargarCampos();
+    renderConcesionarias();
+  }, err => console.error('Error leyendo config de concesionarias:', err));
+};
+
+const suscribirLineaConc = () => {
+  const id = configConc && configConc.lineaId;
+  if (lineaConcIdSuscripta === id) return;
+  if (unsubLineaConc) unsubLineaConc();
+  unsubLineaConc = null;
+  lineaConcIdSuscripta = id;
+  lineaConc = null;
+  if (!id) return;
+  unsubLineaConc = db.collection('lineas').doc(id).onSnapshot(doc => {
+    lineaConc = doc.exists ? { id: doc.id, ...doc.data() } : null;
+    renderConcesionarias();
+  }, err => { console.error('Error leyendo la línea del módulo:', err); lineaConc = null; renderConcesionarias(); });
+};
+
+// Admins: escuchan todas las consultas (las reglas no dejan a los vendedores).
+const asegurarSuscripcionConsultasAdmin = () => {
+  if (!esAdmin()) return;
+  suscribirConfigConc();
+  if (unsubConsultas) return;
+  unsubConsultas = db.collection('consultas').onSnapshot(recibirConsultas, err => console.error('Error leyendo consultas:', err));
+};
+
+// Concesionarias: solo su perfil, la config del módulo, la línea del módulo y sus propias consultas.
+const suscribirDatosConcesionaria = (uid) => {
+  unsubYo = db.collection('usuarios').doc(uid).onSnapshot(doc => {
+    if (!doc.exists) return;
+    const yo = doc.data();
+    if (yo.activo === false) {
+      showToast('Tu cuenta fue desactivada por un administrador', 'error');
+      cerrarSesion();
+      return;
+    }
+    if (yo.rol !== 'concesionaria') { location.reload(); return; } // le cambiaron el rol: se recarga con la vista que corresponde
+    currentUser = { ...currentUser, ...yo, uid };
+    aplicarUIRol();
+    renderConcesionarias();
+  }, err => console.error('Error leyendo tu usuario:', err));
+  suscribirConfigConc();
+  unsubConsultas = db.collection('consultas').where('concesionariaId', '==', uid).onSnapshot(recibirConsultas, err => showToast('Error leyendo tus consultas: ' + err.message, 'error'));
+};
+
+const desuscribirConcesionarias = () => {
+  [unsubConsultas, unsubConfigConc, unsubLineaConc, unsubYo].forEach(u => { if (u) u(); });
+  unsubConsultas = null; unsubConfigConc = null; unsubLineaConc = null; unsubYo = null;
+  lineaConcIdSuscripta = undefined;
+  consultasCache = []; configConc = null; configConcGuardada = false; lineaConc = null;
+  ccAdmSel = null; ccMisAbierta = null; ccCfgConcUid = null;
+  cc = ccEstadoInicial();
+  ['ccNombre', 'ccCuit', 'ccMarca', 'ccModelo', 'ccVersion', 'ccPrecio', 'ccMonto', 'ccComentario'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+  ccMostrarVista('nueva');
+};
+
+// ---------- Eventos ----------
+document.querySelectorAll('#ccSubtabs button').forEach(b => b.addEventListener('click', () => ccMostrarVista(b.dataset.cc)));
+document.querySelectorAll('#ccPersona button').forEach(b => b.addEventListener('click', () => { cc.persona = b.dataset.p; ccRenderFormulario(); }));
+document.querySelectorAll('#ccCond button').forEach(b => b.addEventListener('click', () => {
+  const c = b.dataset.c;
+  if (cc.condiciones.includes(c)) {
+    if (cc.condiciones.length > 1) cc.condiciones = cc.condiciones.filter(x => x !== c);
+  } else {
+    cc.condiciones = [...cc.condiciones, c];
+    // monotributista y responsable inscripto se excluyen entre sí
+    if (c === 'monotributo') cc.condiciones = cc.condiciones.filter(x => x !== 'ri');
+    if (c === 'ri') cc.condiciones = cc.condiciones.filter(x => x !== 'monotributo');
+  }
+  ccRenderFormulario();
+}));
+document.getElementById('ccBtnVerificar').addEventListener('click', ccVerificarBCRA);
+document.getElementById('ccCuit').addEventListener('keydown', (e) => { if (e.key === 'Enter') ccVerificarBCRA(); });
+document.getElementById('ccCuit').addEventListener('input', () => ccRenderCliente());
+document.querySelectorAll('#ccCondAuto button').forEach(b => b.addEventListener('click', () => { cc.condAuto = b.dataset.a; ccRenderFormulario(); }));
+['ccNombre', 'ccMarca', 'ccModelo', 'ccVersion'].forEach(id => document.getElementById(id).addEventListener('input', ccRenderFinanciacion));
+document.getElementById('ccAnio').addEventListener('change', ccRenderFinanciacion);
+document.getElementById('ccPrecio').addEventListener('input', () => { cc.montoEditado = false; ccRenderFinanciacion(); });
+document.getElementById('ccPrecio').addEventListener('blur', (e) => { const n = parsePesos(e.target.value); e.target.value = n ? fmtPesos(n) : ''; });
+document.getElementById('ccMonto').addEventListener('input', () => { cc.montoEditado = true; ccRenderFinanciacion(); });
+document.getElementById('ccMonto').addEventListener('blur', (e) => { const n = parsePesos(e.target.value); e.target.value = n ? fmtPesos(n) : ''; });
+document.getElementById('ccOpciones').addEventListener('click', (e) => {
+  const b = e.target.closest('.cc-opt');
+  if (!b) return;
+  cc.plazo = parseInt(b.dataset.plazo);
+  ccRenderFinanciacion();
+});
+document.getElementById('ccBtnDescCot').addEventListener('click', () => descargarImagen('ccCotizacion', 'AMDR_Cotizacion', '#ffffff', nombreArchivoSeguro(document.getElementById('ccNombre').value)));
+document.getElementById('ccBtnCopCot').addEventListener('click', () => copiarImagen('ccCotizacion', '#ffffff'));
+document.getElementById('ccBtnVerReq').addEventListener('click', (e) => {
+  const wrap = document.getElementById('ccReqWrap');
+  wrap.classList.toggle('hidden');
+  e.target.textContent = wrap.classList.contains('hidden') ? 'Mostrar' : 'Ocultar';
+});
+document.getElementById('ccBtnDescReq').addEventListener('click', () => descargarImagen('ccRequisitosImg', 'AMDR_Requisitos', '#ffffff', nombreArchivoSeguro(document.getElementById('ccNombre').value || 'Requisitos')));
+document.getElementById('ccBtnCopReq').addEventListener('click', () => copiarImagen('ccRequisitosImg', '#ffffff'));
+document.getElementById('ccBtnEnviar').addEventListener('click', ccEnviarConsulta);
+document.getElementById('ccBtnOtra').addEventListener('click', () => ccMostrarVista('nueva'));
+document.getElementById('ccBtnIrMis').addEventListener('click', () => ccMostrarVista('mis'));
+document.querySelectorAll('#ccFiltroMis button').forEach(b => b.addEventListener('click', () => { ccFiltroMis = b.dataset.f; ccRenderMis(); }));
+['ccAdmFiltroEstado', 'ccAdmFiltroConc'].forEach(id => document.getElementById(id).addEventListener('change', ccRenderAdminTabla));
+document.getElementById('ccAdmBuscar').addEventListener('input', ccRenderAdminTabla);
+document.getElementById('ccCfgToggle').addEventListener('click', () => {
+  ccCfgAbierta = !ccCfgAbierta;
+  document.getElementById('ccCfgCuerpo').classList.toggle('hidden', !ccCfgAbierta);
+  document.getElementById('ccCfgFlecha').textContent = ccCfgAbierta ? '▲' : '▼';
+  if (ccCfgAbierta) { ccCfgCargarCampos(); ccCfgConcUid = null; ccCfgRenderConc(); }
+});
+document.getElementById('ccCfgGuardar').addEventListener('click', ccCfgGuardar);
+document.getElementById('ccCfgConcSel').addEventListener('change', (e) => {
+  ccCfgConcUid = e.target.value;
+  const u = usuariosCache.find(x => x.uid === ccCfgConcUid);
+  ccCfgCampos = ((u && u.datosContacto) || []).map(c => ({ ...c }));
+  ccCfgRenderConc();
+});
+document.getElementById('ccCfgConcAgregar').addEventListener('click', () => { ccCfgCampos.push({ label: '', valor: '' }); ccCfgRenderConc(); });
+document.getElementById('ccCfgConcGuardar').addEventListener('click', ccCfgGuardarConc);
 
 window.editarLinea = editarLinea;
 window.eliminarLinea = eliminarLinea;
