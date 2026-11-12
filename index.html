@@ -1535,7 +1535,7 @@ const db = firebase.firestore();
 // un admin marca una versión nueva como la única válida.
 // IMPORTANTE: subir este número cada vez que se entregue un archivo nuevo.
 // ============================================================
-const APP_VERSION = 71;
+const APP_VERSION = 72;
 let versionBloqueada = false;
 
 const verificarVersion = async () => {
@@ -4565,12 +4565,21 @@ const htmlCotizacion = (d) => {
 
 const nombreArchivoSeguro = (s) => (s || 'cliente').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^\w\s-]/g, '').trim() || 'cliente';
 
+// ¿Es un celular o tablet? En la compu el menú "Compartir" del navegador existe pero no sirve
+// para WhatsApp, así que ahí el botón no se muestra.
+const ccEsCelular = () => {
+  if (navigator.userAgentData && typeof navigator.userAgentData.mobile === 'boolean' && navigator.userAgentData.mobile) return true;
+  const ua = navigator.userAgent || '';
+  if (/Android|iPhone|iPad|iPod/i.test(ua)) return true;
+  return /Macintosh/i.test(ua) && navigator.maxTouchPoints > 1; // iPad que se presenta como Mac
+};
+
 // ¿El dispositivo deja compartir imágenes con otras apps (menú "Compartir" del celular)?
 let ccPuedeCompartirMemo = null;
 const ccPuedeCompartir = () => {
   if (ccPuedeCompartirMemo === null) {
     try {
-      ccPuedeCompartirMemo = !!(navigator.share && navigator.canShare &&
+      ccPuedeCompartirMemo = !!(ccEsCelular() && navigator.share && navigator.canShare &&
         navigator.canShare({ files: [new File([new Blob(['x'], { type: 'image/jpeg' })], 'x.jpg', { type: 'image/jpeg' })] }));
     } catch (err) { ccPuedeCompartirMemo = false; }
   }
@@ -4639,6 +4648,7 @@ const htmlBloqueCompartir = (prefijo, datos) => `
     <button type="button" class="btn btn-ghost btn-sm" style="flex:1;" onclick="copiarImagen('${prefijo}Cot', '#ffffff')">Copiar cotización</button>
     <button type="button" class="btn btn-ghost btn-sm" style="flex:1;" onclick="copiarImagen('${prefijo}Req', '#ffffff')">Copiar requisitos</button>
   </div>
+  ${ccEsCelular() ? '' : `<p class="input-help text-center">Para mandarlas por WhatsApp Web: copiá cada imagen y pegala en el chat con ${/Mac/i.test(navigator.userAgent || '') ? 'Cmd' : 'Ctrl'}+V.</p>`}
   <p class="field-label mt-4 text-center" style="margin-bottom:0;">1 · Cotización</p>
   <div id="${prefijo}Cot" class="cc-img" data-cliente="${escHtml(datos.cliente.nombre)}">${htmlCotizacion(datos)}</div>
   <p class="field-label mt-4 text-center" style="margin-bottom:0;">2 · Requisitos</p>
