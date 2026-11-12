@@ -316,6 +316,15 @@
   .cc-card.novedad { border-color:var(--purple-500); box-shadow:0 0 0 2px rgba(123,75,148,0.15); }
   .cc-card .punto { position:absolute; top:13px; right:13px; width:9px; height:9px; border-radius:50%; background:var(--red-700); }
   .cc-comentario { background:var(--purple-50); border-left:3px solid var(--purple-500); border-radius:6px; padding:7px 9px; font-size:0.78rem; margin-top:8px; white-space:pre-wrap; }
+  .cc-hist { position:relative; margin:4px 0 0; padding-left:16px; }
+  .cc-hist::before { content:''; position:absolute; left:4px; top:6px; bottom:6px; width:2px; background:var(--line); }
+  .cc-hist-item { position:relative; padding:0 0 12px; }
+  .cc-hist-item:last-child { padding-bottom:0; }
+  .cc-hist-item::before { content:''; position:absolute; left:-16px; top:4px; width:10px; height:10px; border-radius:50%; background:#fff; border:2px solid var(--purple-500); }
+  .cc-hist-item.ultimo::before { background:var(--purple-500); }
+  .cc-hist-cab { display:flex; flex-wrap:wrap; align-items:center; gap:6px; font-size:0.72rem; color:var(--ink-faint); }
+  .cc-hist-txt { font-size:0.8rem; color:var(--ink); margin-top:3px; white-space:pre-wrap; background:var(--purple-50); border-radius:6px; padding:6px 8px; }
+  .cc-hist-item.de-conc .cc-hist-txt { background:var(--paper-deep); }
   .cc-kv { display:grid; grid-template-columns:auto 1fr; gap:3px 12px; font-size:0.8rem; }
   .cc-kv > span:nth-child(odd) { color:var(--ink-faint); }
   .cc-det-sec { border-top:1px solid var(--line); padding:12px 16px; }
@@ -1534,7 +1543,7 @@ const db = firebase.firestore();
 // un admin marca una versión nueva como la única válida.
 // IMPORTANTE: subir este número cada vez que se entregue un archivo nuevo.
 // ============================================================
-const APP_VERSION = 67;
+const APP_VERSION = 68;
 let versionBloqueada = false;
 
 const verificarVersion = async () => {
@@ -4792,6 +4801,7 @@ const ccEnviarConsulta = async () => {
     comentarioConcesionaria: document.getElementById('ccComentario').value.trim(),
     estado: 'nueva',
     comentarioAdmin: '',
+    historial: [{ fecha: ahora, estado: 'nueva', comentario: document.getElementById('ccComentario').value.trim(), por: currentUser.nombre || currentUser.email, autor: 'concesionaria' }],
     actualizadoEn: ahora,
     vistoPorAdmin: false,
     vistoPorConcesionaria: true
@@ -4832,6 +4842,30 @@ const htmlDetalleVehiculo = (c) => {
   const v = c.vehiculo;
   return `${escHtml([v.marca, v.modelo, v.version].filter(Boolean).join(' '))} · ${v.condicion === 'usado' ? escHtml(v.anio) + ' · usado' : '0 km'}`;
 };
+// Historial de la consulta: cada cambio de estado o comentario queda anotado (lo ven la
+// concesionaria y los admins). Las consultas cargadas antes de que existiera el historial
+// se reconstruyen con lo que tienen guardado (la carga y el estado/comentario actual).
+const historialDe = (c) => {
+  if (Array.isArray(c.historial) && c.historial.length) return c.historial;
+  const h = [{ fecha: c.fecha, estado: 'nueva', comentario: c.comentarioConcesionaria || '', por: c.concesionariaNombre, autor: 'concesionaria' }];
+  if (c.estado !== 'nueva' || c.comentarioAdmin) {
+    h.push({ fecha: c.actualizadoEn || c.fecha, estado: c.estado, comentario: c.comentarioAdmin || '', por: 'Mutual', autor: 'mutual' });
+  }
+  return h;
+};
+const htmlHistorial = (c) => {
+  const h = historialDe(c);
+  return `<div class="cc-hist">${h.map((e, i) => `
+    <div class="cc-hist-item ${e.autor === 'concesionaria' ? 'de-conc' : ''} ${i === h.length - 1 ? 'ultimo' : ''}">
+      <div class="cc-hist-cab">
+        <span>${escHtml(fechaCorta(e.fecha))} ${escHtml(new Date(e.fecha).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false }))}</span>
+        <span class="cc-estado cc-e-${e.estado}">${ESTADOS_CONSULTA[e.estado] || escHtml(e.estado)}</span>
+        <span>${e.autor === 'concesionaria' ? 'Cargada por ' + escHtml(e.por) : escHtml(e.por || 'Mutual')}</span>
+      </div>
+      ${e.comentario ? `<div class="cc-hist-txt">${escHtml(e.comentario)}</div>` : ''}
+    </div>`).join('')}</div>`;
+};
+
 const textoTipoCliente = (cl) => cl.tipoPersona === 'juridica'
   ? 'Persona jurídica'
   : 'Persona física · ' + ORDEN_CONDICIONES.filter(c => (cl.condiciones || []).includes(c)).map(c => NOMBRE_CONDICION[c]).join(' + ');
@@ -4870,7 +4904,8 @@ const ccRenderMis = () => {
             <span>Precio</span><span>${fmtPesos(c.vehiculo.precio)}</span>
             <span>Financia</span><span>${fmtPesos(c.financiacion.monto)} en ${c.financiacion.plazo} cuotas de ${fmtPesos(c.financiacion.cuota)}</span>
           </div>
-          ${c.comentarioConcesionaria ? `<p class="text-xs mt-2" style="color:var(--ink-soft);"><b>Tu comentario:</b> ${escHtml(c.comentarioConcesionaria)}</p>` : ''}
+          <p class="field-label mt-3" style="margin-bottom:6px;">Historial</p>
+          ${htmlHistorial(c)}
           <div class="flex gap-2 mt-3">
             <button type="button" class="btn btn-primary btn-sm" style="flex:1;" onclick="ccDescargarCotMis('${c.id}')">Descargar cotización</button>
             <button type="button" class="btn btn-ghost btn-sm" style="flex:1;" onclick="copiarImagen('ccCotMis', '#ffffff')">Copiar cotización</button>
@@ -5027,16 +5062,16 @@ const ccRenderAdminDetalle = () => {
         </div>
         <div id="ccCotAdm" class="cc-img">${htmlCotizacion(datosCotizacionDeConsulta(c, { nombre: c.concesionariaNombre, datosContacto: (conc && conc.datosContacto) || [] }))}</div>` : ''}
     </div>
-    ${c.comentarioConcesionaria ? `<div class="cc-det-sec"><h4>Comentario de la concesionaria</h4><p style="font-size:0.82rem; white-space:pre-wrap;">${escHtml(c.comentarioConcesionaria)}</p></div>` : ''}
+    <div class="cc-det-sec"><h4>Historial</h4>${htmlHistorial(c)}</div>
     <div class="cc-det-sec" style="background:var(--purple-50);"><h4>Tu respuesta</h4>
       <label class="field-label">Estado</label>
       <select id="ccAdmEstado" class="input-field">
         ${Object.entries(ESTADOS_CONSULTA).map(([k, n]) => `<option value="${k}" ${c.estado === k ? 'selected' : ''}>${n}</option>`).join('')}
       </select>
-      <label class="field-label mt-2">Comentario para la concesionaria</label>
-      <textarea id="ccAdmComentario" class="input-field" rows="3" placeholder="Ej: Falta el último recibo de sueldo">${escHtml(c.comentarioAdmin || '')}</textarea>
+      <label class="field-label mt-2">Comentario nuevo para la concesionaria <span style="color:var(--ink-faint);">(opcional)</span></label>
+      <textarea id="ccAdmComentario" class="input-field" rows="3" placeholder="Ej: Falta el último recibo de sueldo"></textarea>
       <button type="button" class="btn btn-primary btn-block mt-3" onclick="ccAdmGuardar('${c.id}')">Guardar</button>
-      <p class="input-help">La concesionaria lo ve en "Mis consultas" con un aviso de novedad (no le llega mail).</p>
+      <p class="input-help">Queda en el historial y la concesionaria lo ve en "Mis consultas" con un aviso de novedad (no le llega mail).</p>
       <button type="button" class="text-xs mt-3" style="color:var(--red-700); text-decoration:underline;" onclick="ccAdmEliminar('${c.id}')">Eliminar consulta</button>
     </div>`;
 };
@@ -5060,12 +5095,17 @@ const ccAdmGuardar = async (id) => {
   const c = consultasCache.find(x => x.id === id);
   if (!c) return;
   const estado = document.getElementById('ccAdmEstado').value;
-  const comentarioAdmin = document.getElementById('ccAdmComentario').value.trim();
-  if (estado === c.estado && comentarioAdmin === (c.comentarioAdmin || '')) return showToast('No hay cambios para guardar', 'info');
+  const comentario = document.getElementById('ccAdmComentario').value.trim();
+  if (estado === c.estado && !comentario) return showToast('Cambiá el estado o escribí un comentario', 'info');
+  const ahora = new Date().toISOString();
+  // Si la consulta es anterior al historial, se guarda primero lo reconstruido para no perderlo.
+  const historial = [...historialDe(c), { fecha: ahora, estado, comentario, por: currentUser.nombre || currentUser.email, autor: 'mutual' }];
   try {
     await db.collection('consultas').doc(id).update({
-      estado, comentarioAdmin,
-      actualizadoEn: new Date().toISOString(),
+      estado,
+      comentarioAdmin: comentario,
+      historial,
+      actualizadoEn: ahora,
       actualizadoPor: currentUser.email,
       vistoPorConcesionaria: false,
       vistoPorAdmin: true
