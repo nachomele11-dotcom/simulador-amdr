@@ -1254,10 +1254,6 @@
                 <p class="input-help">Relación de dependencia se puede combinar con monotributista o con responsable inscripto.</p>
               </div>
               <div class="mt-3">
-                <label class="field-label" id="ccLabNombre">Nombre y apellido</label>
-                <input id="ccNombre" type="text" class="input-field" autocomplete="off">
-              </div>
-              <div class="mt-3">
                 <label class="field-label">CUIT / CUIL</label>
                 <div class="flex gap-2">
                   <input id="ccCuit" type="text" class="input-field" placeholder="20123456789" maxlength="13" inputmode="numeric" autocomplete="off">
@@ -1265,6 +1261,11 @@
                 </div>
               </div>
               <div id="ccBcra" class="hidden mt-2"></div>
+              <div class="mt-3">
+                <label class="field-label" id="ccLabNombre">Nombre y apellido</label>
+                <input id="ccNombre" type="text" class="input-field" autocomplete="off" disabled>
+                <p class="input-help" id="ccNombreAyuda">Se completa solo al verificar el CUIT.</p>
+              </div>
             </div>
 
             <div id="ccPasos" class="hidden">
@@ -1529,7 +1530,7 @@ const db = firebase.firestore();
 // un admin marca una versión nueva como la única válida.
 // IMPORTANTE: subir este número cada vez que se entregue un archivo nuevo.
 // ============================================================
-const APP_VERSION = 69;
+const APP_VERSION = 70;
 let versionBloqueada = false;
 
 const verificarVersion = async () => {
@@ -4623,6 +4624,7 @@ const ccEstadoInicial = () => ({
   condiciones: ['dependencia'],
   bcra: null,             // respuesta de /api/bcra para ccCuitVerificado
   cuitVerificado: null,
+  cuitNombre: null,       // CUIT al que corresponde el nombre cargado (para no dejar el nombre de otro cliente)
   verificando: false,
   condAuto: '0km',
   montoEditado: false,
@@ -4684,6 +4686,16 @@ const ccRenderCliente = () => {
   }
   const habilitado = !!(cc.bcra && bcraCalifica(cc.bcra) && soloDigitos(document.getElementById('ccCuit').value) === cc.cuitVerificado);
   document.getElementById('ccPasos').classList.toggle('hidden', !habilitado);
+  // El nombre va después del CUIT: se completa con lo que informa el BCRA y recién ahí se puede editar.
+  const inputNombre = document.getElementById('ccNombre');
+  inputNombre.disabled = !habilitado;
+  inputNombre.placeholder = habilitado ? (cc.persona === 'juridica' ? 'Escribí la razón social' : 'Escribí el nombre y apellido') : '';
+  const cuitVigente = !!(cc.bcra && cc.bcra.ok) && !cuitCambio;
+  let ayuda = 'Se completa solo al verificar el CUIT.';
+  if (habilitado) ayuda = cc.bcra.denominacion ? 'Es el nombre que figura en el BCRA. Podés corregirlo si hace falta.' : 'El BCRA no informa el nombre para este CUIT: escribilo vos.';
+  else if (cuitVigente) ayuda = cc.bcra.denominacion ? 'Es el nombre que figura en el BCRA.' : '';
+  else if (inputNombre.value.trim()) ayuda = 'Cambiaste el CUIT: verificalo para actualizar el nombre.';
+  document.getElementById('ccNombreAyuda').textContent = ayuda;
 };
 
 const ccRenderFinanciacion = () => {
@@ -4764,8 +4776,15 @@ const ccVerificarBCRA = async () => {
   }
   cc.verificando = false;
   cc.cuitVerificado = cc.bcra && cc.bcra.ok ? cuit : null;
-  if (cc.bcra && cc.bcra.ok && cc.bcra.denominacion && !document.getElementById('ccNombre').value.trim()) {
-    document.getElementById('ccNombre').value = cc.bcra.denominacion;
+  if (cc.bcra && cc.bcra.ok) {
+    const inputNombre = document.getElementById('ccNombre');
+    if (cuit !== cc.cuitNombre) {
+      // CUIT distinto al anterior: el nombre se reemplaza por el del BCRA (o queda vacío para escribirlo)
+      inputNombre.value = cc.bcra.denominacion || '';
+      cc.cuitNombre = cuit;
+    } else if (!inputNombre.value.trim() && cc.bcra.denominacion) {
+      inputNombre.value = cc.bcra.denominacion;
+    }
   }
   ccRenderFormulario();
 };
