@@ -1307,23 +1307,9 @@
 
               <div class="cc-paso">
                 <div class="cc-paso-tit"><span class="cc-paso-num">4</span><h3>Para mandarle al cliente</h3></div>
-                <p class="text-xs" style="color:var(--ink-faint);">Cotización con el auto, lo financiado, las opciones de cuotas, los requisitos y los datos de tu concesionaria.</p>
+                <p class="text-xs" style="color:var(--ink-faint);">Dos imágenes para mandar por WhatsApp: la cotización (auto, financiación, cuotas y tu concesionaria) y los requisitos. También las podés bajar juntas en un PDF.</p>
                 <div id="ccCotFaltan" class="cc-neutro mt-3">Completá el vehículo, el precio y el plazo para armar la cotización.</div>
-                <div id="ccCotListo" class="hidden">
-                  <div class="flex gap-2 mt-3">
-                    <button type="button" id="ccBtnDescCot" class="btn btn-primary btn-sm" style="flex:1;">Descargar cotización</button>
-                    <button type="button" id="ccBtnCopCot" class="btn btn-ghost btn-sm" style="flex:1;">Copiar cotización</button>
-                  </div>
-                  <div id="ccCotizacion" class="cc-img"></div>
-                </div>
-                <p class="text-center mt-3" style="font-size:0.75rem; color:var(--ink-faint);">¿Solo los requisitos? <button type="button" id="ccBtnVerReq" style="color:var(--purple-500); text-decoration:underline;">Mostrar</button></p>
-                <div id="ccReqWrap" class="hidden">
-                  <div class="flex gap-2 mt-2">
-                    <button type="button" id="ccBtnDescReq" class="btn btn-secondary btn-sm" style="flex:1;">Descargar requisitos</button>
-                    <button type="button" id="ccBtnCopReq" class="btn btn-ghost btn-sm" style="flex:1;">Copiar requisitos</button>
-                  </div>
-                  <div id="ccRequisitosImg" class="cc-img"></div>
-                </div>
+                <div id="ccCotListo" class="hidden"></div>
               </div>
 
               <div class="cc-paso">
@@ -1543,7 +1529,7 @@ const db = firebase.firestore();
 // un admin marca una versión nueva como la única válida.
 // IMPORTANTE: subir este número cada vez que se entregue un archivo nuevo.
 // ============================================================
-const APP_VERSION = 68;
+const APP_VERSION = 69;
 let versionBloqueada = false;
 
 const verificarVersion = async () => {
@@ -4525,10 +4511,11 @@ const htmlSeccionesRequisitos = (req, tituloFisica) => req.secciones.map(s => `
   <ul>${s.items.map(i => `<li><span class="bul">•</span><span>${escHtml(i)}</span></li>`).join('')}</ul>`).join('')
   + (req.nota ? `<div class="nota"><span class="nz" data-export-nudge="${NZ}">${escHtml(req.nota)}</span></div>` : '');
 
-const htmlRequisitos = (req) => `
+const htmlRequisitos = (req, clienteNombre) => `
   <div class="d1"></div><div class="d2"></div>
   <div class="cuerpo">
     <div class="tit"><b>REQUISITOS</b><span>FINANCIACIÓN PRENDARIA</span></div>
+    ${clienteNombre ? `<p class="para">Para <b>${escHtml(clienteNombre)}</b></p>` : ''}
     <div class="pill"><span class="nz" data-export-nudge="${NZ}">${escHtml(req.pill)}</span></div>
     ${htmlSeccionesRequisitos(req, 'DOCUMENTACIÓN REQUERIDA')}
   </div>
@@ -4539,7 +4526,6 @@ const htmlRequisitos = (req) => `
 const htmlCotizacion = (d) => {
   const v = d.vehiculo;
   const f = d.financiacion;
-  const req = requisitosPara(d.cliente.tipoPersona, d.cliente.condiciones);
   const auto = [v.marca, v.modelo, v.version].filter(Boolean).join(' ');
   const sub = v.condicion === 'usado' ? `${v.anio} · usado` : '0 km';
   const contacto = (d.concesionaria.datosContacto || []).filter(c => (c.label || '').trim() || (c.valor || '').trim());
@@ -4560,8 +4546,7 @@ const htmlCotizacion = (d) => {
     <div class="opc">
       ${f.opciones.map(o => `<div class="${o.plazo === f.plazo ? 'on' : ''}"><span class="nz" data-export-nudge="${NZ}"><b>${o.plazo}</b> cuotas de <b>${fmtPesos(o.cuota)}</b></span>${o.plazo === f.plazo ? `<span class="elegida nz" data-export-nudge="${NZ}">ELEGIDA</span>` : ''}</div>`).join('')}
     </div>
-    <div class="pill"><span class="nz" data-export-nudge="${NZ}">${escHtml(req.pill)}</span></div>
-    ${htmlSeccionesRequisitos(req, 'REQUISITOS')}
+    <p class="legal" style="margin-top:12px; color:#5B2C6F;">La documentación necesaria va en la imagen de requisitos.</p>
     <div class="conc">
       <p class="lab">TU CONCESIONARIA</p>
       <p><b>${escHtml(d.concesionaria.nombre)}</b></p>
@@ -4573,6 +4558,64 @@ const htmlCotizacion = (d) => {
 };
 
 const nombreArchivoSeguro = (s) => (s || 'cliente').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^\w\s-]/g, '').trim() || 'cliente';
+
+// Bloque "para mandarle al cliente": dos imágenes (cotización y requisitos) + PDF de 2 páginas.
+// prefijo: ids de las imágenes = prefijo + 'Cot' / prefijo + 'Req'.
+const htmlBloqueCompartir = (prefijo, datos) => `
+  <div class="flex gap-2 flex-wrap mt-3">
+    <button type="button" class="btn btn-primary btn-sm" style="flex:1 1 150px;" onclick="ccDescargarImagenes('${prefijo}')">Descargar las 2 imágenes</button>
+    <button type="button" class="btn btn-secondary btn-sm" style="flex:1 1 150px;" onclick="ccDescargarPDF('${prefijo}')">Descargar PDF</button>
+  </div>
+  <div class="flex gap-2 mt-2">
+    <button type="button" class="btn btn-ghost btn-sm" style="flex:1;" onclick="copiarImagen('${prefijo}Cot', '#ffffff')">Copiar cotización</button>
+    <button type="button" class="btn btn-ghost btn-sm" style="flex:1;" onclick="copiarImagen('${prefijo}Req', '#ffffff')">Copiar requisitos</button>
+  </div>
+  <p class="field-label mt-4 text-center" style="margin-bottom:0;">1 · Cotización</p>
+  <div id="${prefijo}Cot" class="cc-img" data-cliente="${escHtml(datos.cliente.nombre)}">${htmlCotizacion(datos)}</div>
+  <p class="field-label mt-4 text-center" style="margin-bottom:0;">2 · Requisitos</p>
+  <div id="${prefijo}Req" class="cc-img">${htmlRequisitos(requisitosPara(datos.cliente.tipoPersona, datos.cliente.condiciones), datos.cliente.nombre)}</div>`;
+
+const ccNombreArchivo = (prefijo) => nombreArchivoSeguro((document.getElementById(prefijo + 'Cot') || {}).dataset ? document.getElementById(prefijo + 'Cot').dataset.cliente : '');
+
+const ccDescargarImagenes = async (prefijo) => {
+  const nombre = ccNombreArchivo(prefijo);
+  await descargarImagen(prefijo + 'Cot', 'AMDR_Cotizacion', '#ffffff', nombre);
+  await descargarImagen(prefijo + 'Req', 'AMDR_Requisitos', '#ffffff', nombre);
+};
+
+// PDF A4 de dos páginas (cotización y requisitos), cada imagen centrada y ajustada a la hoja.
+const ccDescargarPDF = async (prefijo) => {
+  showToast('Generando PDF...', 'info');
+  try {
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'p' });
+    const ids = [prefijo + 'Cot', prefijo + 'Req'];
+    for (let i = 0; i < ids.length; i++) {
+      const el = document.getElementById(ids[i]);
+      await esperarImagenes(el);
+      const nudges = aplicarCorreccionesExport(el);
+      let canvas;
+      try {
+        canvas = await html2canvas(el, { scale: 2, logging: false, backgroundColor: '#ffffff' });
+      } finally {
+        revertirCorreccionesExport(nudges);
+      }
+      const margen = 10, maxW = 210 - 2 * margen, maxH = 297 - 2 * margen;
+      const ratio = canvas.height / canvas.width;
+      let w = maxW, h = w * ratio;
+      if (h > maxH) { h = maxH; w = h / ratio; }
+      if (i > 0) pdf.addPage('a4', 'p');
+      pdf.addImage(canvas.toDataURL('image/jpeg', 0.92), 'JPEG', (210 - w) / 2, margen, w, h);
+    }
+    pdf.save(`AMDR_Cotizacion_${ccNombreArchivo(prefijo).replace(/\s+/g, '_')}.pdf`);
+    showToast('PDF generado', 'success');
+  } catch (err) {
+    console.error(err);
+    showToast('No se pudo generar el PDF', 'error');
+  }
+};
+window.ccDescargarImagenes = ccDescargarImagenes;
+window.ccDescargarPDF = ccDescargarPDF;
 
 // ---------- Formulario de la concesionaria ----------
 const ccEstadoInicial = () => ({
@@ -4689,8 +4732,7 @@ const ccRenderFinanciacion = () => {
   const listo = opciones.length && cc.plazo && v.marca && v.modelo && nombre && (v.condicion === '0km' || v.anio);
   document.getElementById('ccCotFaltan').classList.toggle('hidden', !!listo);
   document.getElementById('ccCotListo').classList.toggle('hidden', !listo);
-  if (listo) document.getElementById('ccCotizacion').innerHTML = htmlCotizacion(ccDatosCotizacionForm(opciones, monto));
-  document.getElementById('ccRequisitosImg').innerHTML = htmlRequisitos(requisitosPara(cc.persona, cc.condiciones));
+  document.getElementById('ccCotListo').innerHTML = listo ? htmlBloqueCompartir('ccForm', ccDatosCotizacionForm(opciones, monto)) : '';
 };
 
 const ccDatosCotizacionForm = (opciones, monto) => ({
@@ -4732,7 +4774,6 @@ const ccResetFormulario = () => {
   cc = ccEstadoInicial();
   ['ccNombre', 'ccCuit', 'ccMarca', 'ccModelo', 'ccVersion', 'ccPrecio', 'ccMonto', 'ccComentario'].forEach(id => { document.getElementById(id).value = ''; });
   document.getElementById('ccAnio').value = '';
-  document.getElementById('ccReqWrap').classList.add('hidden');
   ccRenderFormulario();
 };
 
@@ -4906,12 +4947,9 @@ const ccRenderMis = () => {
           </div>
           <p class="field-label mt-3" style="margin-bottom:6px;">Historial</p>
           ${htmlHistorial(c)}
-          <div class="flex gap-2 mt-3">
-            <button type="button" class="btn btn-primary btn-sm" style="flex:1;" onclick="ccDescargarCotMis('${c.id}')">Descargar cotización</button>
-            <button type="button" class="btn btn-ghost btn-sm" style="flex:1;" onclick="copiarImagen('ccCotMis', '#ffffff')">Copiar cotización</button>
-          </div>
-          <p class="text-xs mt-1" style="color:var(--ink-faint);">La cotización se arma con los valores del día en que se cargó la consulta.</p>
-          <div id="ccCotMis" class="cc-img">${htmlCotizacion(datosCotizacionDeConsulta(c, { nombre: currentUser.nombre || currentUser.email, datosContacto: currentUser.datosContacto || [] }))}</div>
+          <p class="field-label mt-4" style="margin-bottom:0;">Para mandarle al cliente</p>
+          <p class="text-xs" style="color:var(--ink-faint);">Con los valores del día en que se cargó la consulta.</p>
+          ${htmlBloqueCompartir('ccMis', datosCotizacionDeConsulta(c, { nombre: currentUser.nombre || currentUser.email, datosContacto: currentUser.datosContacto || [] }))}
         </div>` : ''}
     </div>`;
   }).join('');
@@ -4925,12 +4963,7 @@ const ccToggleMis = (id) => {
   }
   ccRenderMis();
 };
-const ccDescargarCotMis = (id) => {
-  const c = consultasCache.find(x => x.id === id);
-  descargarImagen('ccCotMis', 'AMDR_Cotizacion', '#ffffff', nombreArchivoSeguro(c && c.cliente.nombre));
-};
 window.ccToggleMis = ccToggleMis;
-window.ccDescargarCotMis = ccDescargarCotMis;
 
 let ccVistaActual = 'nueva';
 const ccMostrarVista = (vista) => {
@@ -5053,14 +5086,9 @@ const ccRenderAdminDetalle = () => {
       </div>
       <div class="flex gap-2 flex-wrap mt-3">
         <button type="button" class="btn btn-ghost btn-sm" onclick="ccAbrirEnSimulador('${c.id}')">Abrir en el simulador</button>
-        <button type="button" class="btn btn-secondary btn-sm" onclick="ccAdmVerCot('${c.id}')">${ccAdmCotVisible === c.id ? 'Ocultar cotización' : 'Ver cotización'}</button>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="ccAdmVerCot('${c.id}')">${ccAdmCotVisible === c.id ? 'Ocultar cotización' : 'Ver cotización y requisitos'}</button>
       </div>
-      ${ccAdmCotVisible === c.id ? `
-        <div class="flex gap-2 mt-3">
-          <button type="button" class="btn btn-primary btn-sm" style="flex:1;" onclick="descargarImagen('ccCotAdm', 'AMDR_Cotizacion', '#ffffff', nombreArchivoSeguro(consultasCache.find(x => x.id === '${c.id}').cliente.nombre))">Descargar</button>
-          <button type="button" class="btn btn-ghost btn-sm" style="flex:1;" onclick="copiarImagen('ccCotAdm', '#ffffff')">Copiar</button>
-        </div>
-        <div id="ccCotAdm" class="cc-img">${htmlCotizacion(datosCotizacionDeConsulta(c, { nombre: c.concesionariaNombre, datosContacto: (conc && conc.datosContacto) || [] }))}</div>` : ''}
+      ${ccAdmCotVisible === c.id ? htmlBloqueCompartir('ccAdm', datosCotizacionDeConsulta(c, { nombre: c.concesionariaNombre, datosContacto: (conc && conc.datosContacto) || [] })) : ''}
     </div>
     <div class="cc-det-sec"><h4>Historial</h4>${htmlHistorial(c)}</div>
     <div class="cc-det-sec" style="background:var(--purple-50);"><h4>Tu respuesta</h4>
@@ -5375,15 +5403,6 @@ document.getElementById('ccOpciones').addEventListener('click', (e) => {
   cc.plazo = parseInt(b.dataset.plazo);
   ccRenderFinanciacion();
 });
-document.getElementById('ccBtnDescCot').addEventListener('click', () => descargarImagen('ccCotizacion', 'AMDR_Cotizacion', '#ffffff', nombreArchivoSeguro(document.getElementById('ccNombre').value)));
-document.getElementById('ccBtnCopCot').addEventListener('click', () => copiarImagen('ccCotizacion', '#ffffff'));
-document.getElementById('ccBtnVerReq').addEventListener('click', (e) => {
-  const wrap = document.getElementById('ccReqWrap');
-  wrap.classList.toggle('hidden');
-  e.target.textContent = wrap.classList.contains('hidden') ? 'Mostrar' : 'Ocultar';
-});
-document.getElementById('ccBtnDescReq').addEventListener('click', () => descargarImagen('ccRequisitosImg', 'AMDR_Requisitos', '#ffffff', nombreArchivoSeguro(document.getElementById('ccNombre').value || 'Requisitos')));
-document.getElementById('ccBtnCopReq').addEventListener('click', () => copiarImagen('ccRequisitosImg', '#ffffff'));
 document.getElementById('ccBtnEnviar').addEventListener('click', ccEnviarConsulta);
 document.getElementById('ccBtnOtra').addEventListener('click', () => ccMostrarVista('nueva'));
 document.getElementById('ccBtnIrMis').addEventListener('click', () => ccMostrarVista('mis'));
