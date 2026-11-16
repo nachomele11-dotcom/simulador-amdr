@@ -913,7 +913,7 @@
                     <h3 class="font-display text-lg mb-3" style="font-weight:600; color:var(--purple-700);">Detalle de los cheques</h3>
                     <div class="table-wrap">
                       <table class="data-table" style="font-size:0.78rem;">
-                        <thead><tr><th>N°</th><th>Fecha del cheque</th><th>Valor nominal</th><th>Descuento</th></tr></thead>
+                        <thead><tr><th>N°</th><th>Fecha del cheque</th><th>Días</th><th>Valor nominal</th></tr></thead>
                         <tbody id="propTablaCheques2"></tbody>
                       </table>
                     </div>
@@ -1535,7 +1535,7 @@ const db = firebase.firestore();
 // un admin marca una versión nueva como la única válida.
 // IMPORTANTE: subir este número cada vez que se entregue un archivo nuevo.
 // ============================================================
-const APP_VERSION = 72;
+const APP_VERSION = 73;
 let versionBloqueada = false;
 
 const verificarVersion = async () => {
@@ -3535,14 +3535,14 @@ const actualizarPropuesta = () => {
         <td>${fmt(redondearPesos(c.descuento), 0, s.moneda)}</td>
       </tr>`).join('');
 
-    // Formal 2: solo N°, fecha del cheque, valor nominal y descuento
-    // (sin "Se acredita", "Días" ni "TNA")
+    // Formal 2: solo N°, fecha del cheque, días y valor nominal
+    // (sin "Se acredita", "TNA" ni "Descuento")
     document.getElementById('propTablaCheques2').innerHTML = s.cheques.map(c => `
       <tr>
         <td>${c.numero}</td>
         <td>${new Date(c.fechaCobro + 'T00:00:00').toLocaleDateString('es-AR')}</td>
+        <td>${c.dias}</td>
         <td>${fmt(redondearPesos(c.valorNominal), 0, s.moneda)}</td>
-        <td>${fmt(redondearPesos(c.descuento), 0, s.moneda)}</td>
       </tr>`).join('');
 
     return;
