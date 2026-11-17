@@ -1124,6 +1124,53 @@
               <h2 class="font-display text-base" style="font-weight:600;">Configuración de usuarios</h2>
               <p class="text-xs mt-0.5" style="color:var(--ink-faint);">Rol, módulos y líneas visibles para cada usuario.</p>
             </div>
+            <button type="button" id="btnNuevoUsuario" class="btn btn-primary btn-sm">+ Nuevo usuario</button>
+          </div>
+          <div id="nuevoUsuarioPanel" class="hidden rounded-lg p-4 mb-4" style="border:1px solid var(--purple-200, var(--line)); background:var(--purple-50);">
+            <div id="nuevoUsuarioForm">
+              <h3 class="font-display text-sm mb-3" style="font-weight:600;">Nuevo usuario</h3>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label class="field-label" for="nuNombre">Nombre</label>
+                  <input type="text" id="nuNombre" class="input-field" maxlength="80" placeholder="Ej: Defensores de Chovet">
+                </div>
+                <div>
+                  <label class="field-label" for="nuEmail">Mail</label>
+                  <input type="email" id="nuEmail" class="input-field" maxlength="120" autocomplete="off" placeholder="nombre@mail.com">
+                </div>
+                <div>
+                  <label class="field-label" for="nuRol">Rol</label>
+                  <select id="nuRol" class="input-field">
+                    <option value="vendedor">Vendedor</option>
+                    <option value="concesionaria">Concesionaria</option>
+                    <option value="admin">Administrador</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="field-label" for="nuPassword">Contraseña</label>
+                  <div class="flex gap-2">
+                    <input type="text" id="nuPassword" class="input-field" maxlength="100" autocomplete="new-password" placeholder="Mínimo 6 caracteres">
+                    <button type="button" id="nuGenerar" class="btn btn-ghost btn-sm" style="flex-shrink:0;">Generar</button>
+                  </div>
+                </div>
+              </div>
+              <p id="nuError" class="text-xs mt-3 hidden" style="color:var(--red-700);"></p>
+              <div class="flex gap-2 mt-4 justify-end">
+                <button type="button" id="nuCancelar" class="btn btn-ghost btn-sm">Cancelar</button>
+                <button type="button" id="nuCrear" class="btn btn-primary btn-sm">Crear usuario</button>
+              </div>
+            </div>
+            <div id="nuListo" class="hidden">
+              <p class="text-sm font-semibold" style="color:var(--green-700);">✓ Usuario creado</p>
+              <p class="text-xs mt-1" style="color:var(--ink-soft);">Pasale estos datos para entrar. La contraseña no queda guardada en ningún lado: copiala ahora.</p>
+              <pre id="nuDatos" class="text-sm mt-3 p-3 rounded" style="background:#fff; border:1px solid var(--line); white-space:pre-wrap; font-family:inherit;"></pre>
+              <p id="nuNotaConc" class="text-xs mt-2 hidden" style="color:var(--ink-faint);">Es una concesionaria: acordate de cargar sus datos de contacto en Concesionarias → Configuración del módulo.</p>
+              <div class="flex gap-2 mt-3 justify-end">
+                <button type="button" id="nuCopiar" class="btn btn-ghost btn-sm">Copiar datos</button>
+                <button type="button" id="nuOtro" class="btn btn-ghost btn-sm">Crear otro</button>
+                <button type="button" id="nuCerrar" class="btn btn-primary btn-sm">Listo</button>
+              </div>
+            </div>
           </div>
           <div id="listaConfigUsuarios" class="space-y-2"></div>
         </div>
@@ -1535,7 +1582,7 @@ const db = firebase.firestore();
 // un admin marca una versión nueva como la única válida.
 // IMPORTANTE: subir este número cada vez que se entregue un archivo nuevo.
 // ============================================================
-const APP_VERSION = 73;
+const APP_VERSION = 74;
 let versionBloqueada = false;
 
 const verificarVersion = async () => {
@@ -2341,6 +2388,83 @@ const renderDetalleConfigUsuario = (u) => {
     </div>
   `;
 };
+
+// ---------- Nuevo usuario (lo crea el servidor: /api/crear-usuario) ----------
+const nuEl = (id) => document.getElementById(id);
+const nuMostrarError = (msg) => { const e = nuEl('nuError'); e.textContent = msg || ''; e.classList.toggle('hidden', !msg); };
+const nuResetForm = () => {
+  ['nuNombre', 'nuEmail', 'nuPassword'].forEach(id => { nuEl(id).value = ''; });
+  nuEl('nuRol').value = 'vendedor';
+  nuMostrarError('');
+  nuEl('nuevoUsuarioForm').classList.remove('hidden');
+  nuEl('nuListo').classList.add('hidden');
+};
+const nuGenerarPassword = () => {
+  const letras = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ', nums = '23456789';
+  const r = (set) => set[crypto.getRandomValues(new Uint32Array(1))[0] % set.length];
+  let p = ''; for (let i = 0; i < 6; i++) p += r(letras);
+  for (let i = 0; i < 4; i++) p += r(nums);
+  return p;
+};
+const nuCrear = async () => {
+  if (!esAdmin()) return showToast('Solo un administrador puede crear usuarios', 'error');
+  const nombre = nuEl('nuNombre').value.trim();
+  const email = nuEl('nuEmail').value.trim().toLowerCase();
+  const rol = nuEl('nuRol').value;
+  const password = nuEl('nuPassword').value;
+  if (!nombre) return nuMostrarError('Poné el nombre.');
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return nuMostrarError('El mail no es válido.');
+  if (usuariosCache.some(u => (u.email || '').toLowerCase() === email)) return nuMostrarError('Ya hay un usuario con ese mail en la lista.');
+  if (password.length < 6) return nuMostrarError('La contraseña tiene que tener al menos 6 caracteres.');
+  nuMostrarError('');
+  const btn = nuEl('nuCrear'); btn.disabled = true; btn.textContent = 'Creando...';
+  try {
+    const token = await auth.currentUser.getIdToken();
+    const r = await fetch('/api/crear-usuario', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+      body: JSON.stringify({ nombre, email, rol, password })
+    });
+    let data = {}; try { data = await r.json(); } catch (e) {}
+    if (!r.ok || !data.ok) return nuMostrarError(data.error || 'No se pudo crear el usuario. Probá de nuevo.');
+    const rolTxt = { vendedor: 'Vendedor', concesionaria: 'Concesionaria', admin: 'Administrador' }[rol];
+    nuEl('nuDatos').textContent = `Simulador Mutual AMDR\nhttps://simulador-amdr.vercel.app\nUsuario: ${email}\nContraseña: ${password}`;
+    nuEl('nuNotaConc').classList.toggle('hidden', rol !== 'concesionaria');
+    nuEl('nuevoUsuarioForm').classList.add('hidden');
+    nuEl('nuListo').classList.remove('hidden');
+    showToast(`Usuario creado: ${nombre} (${rolTxt})`, 'success');
+  } catch (err) {
+    console.error(err);
+    nuMostrarError('No se pudo conectar con el servidor. Probá de nuevo.');
+  } finally {
+    btn.disabled = false; btn.textContent = 'Crear usuario';
+  }
+};
+const nuCopiar = async () => {
+  const txt = nuEl('nuDatos').textContent;
+  try { await navigator.clipboard.writeText(txt); showToast('Datos copiados', 'success'); }
+  catch (e) {
+    const rango = document.createRange(); rango.selectNodeContents(nuEl('nuDatos'));
+    const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(rango);
+    showToast('Seleccioné los datos: copialos con Ctrl+C', 'success');
+  }
+};
+const nuInit = () => {
+  if (!nuEl('btnNuevoUsuario')) return;
+  nuEl('btnNuevoUsuario').addEventListener('click', () => {
+    const panel = nuEl('nuevoUsuarioPanel');
+    const abrir = panel.classList.contains('hidden');
+    if (abrir) { nuResetForm(); panel.classList.remove('hidden'); nuEl('nuNombre').focus(); }
+    else panel.classList.add('hidden');
+  });
+  nuEl('nuGenerar').addEventListener('click', () => { nuEl('nuPassword').value = nuGenerarPassword(); nuMostrarError(''); });
+  nuEl('nuCancelar').addEventListener('click', () => nuEl('nuevoUsuarioPanel').classList.add('hidden'));
+  nuEl('nuCrear').addEventListener('click', nuCrear);
+  nuEl('nuCopiar').addEventListener('click', nuCopiar);
+  nuEl('nuOtro').addEventListener('click', nuResetForm);
+  nuEl('nuCerrar').addEventListener('click', () => { nuEl('nuevoUsuarioPanel').classList.add('hidden'); nuResetForm(); });
+};
+nuInit();
 
 const renderConfigUsuarios = () => {
   const cont = document.getElementById('listaConfigUsuarios');
